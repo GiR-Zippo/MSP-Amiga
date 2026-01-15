@@ -1,0 +1,75 @@
+ssr_ipqf.lo ssr_ipqf.o: ssr_ipqf.c common.h ../config.h \
+  /gg/local/include/neaacdec.h /gg/include/stdio.h \
+  /gg/include/sys/types.h /gg/include/machine/types.h \
+  /gg/include/sys/cdefs.h /gg/include/machine/cdefs.h \
+  /gg/include/machine/ansi.h /gg/include/machine/endian.h \
+  /gg/include/sys/stat.h /gg/include/sys/time.h /gg/include/time.h \
+  /gg/include/stdlib.h \
+  /bin/../lib/gcc/m68k-amigaos/3.4.0/include/stddef.h \
+  /gg/include/string.h /gg/include/strings.h /gg/include/inttypes.h \
+  /gg/include/stdint.h \
+  /bin/../lib/gcc/m68k-amigaos/3.4.0/include/limits.h /gg/include/math.h \
+  /bin/../lib/gcc/m68k-amigaos/3.4.0/include/float.h \
+  /bin/../lib/gcc/m68k-amigaos/3.4.0/include/math-68881.h \
+  /gg/include/errno.h structs.h cfft.h sbr_dec.h ps_dec.h bits.h \
+  analysis.h
+
+common.h:
+
+../config.h:
+
+/gg/local/include/neaacdec.h:
+
+/gg/include/stdio.h:
+
+/gg/include/sys/types.h:
+
+/gg/include/machine/types.h:
+
+/gg/include/sys/cdefs.h:
+
+/gg/include/machine/cdefs.h:
+
+/gg/include/machine/ansi.h:
+
+/gg/include/machine/endian.h:
+
+/gg/include/sys/stat.h:
+
+/gg/include/sys/time.h:
+
+/gg/include/time.h:
+
+/gg/include/stdlib.h:
+
+/bin/../lib/gcc/m68k-amigaos/3.4.0/include/stddef.h:
+
+/gg/include/string.h:
+
+/gg/include/strings.h:
+
+/gg/include/inttypes.h:
+
+/gg/include/stdint.h:
+
+/bin/../lib/gcc/m68k-amigaos/3.4.0/include/limits.h:
+
+/gg/include/math.h:
+
+/bin/../lib/gcc/m68k-amigaos/3.4.0/include/float.h:
+
+/bin/../lib/gcc/m68k-amigaos/3.4.0/include/math-68881.h:
+
+/gg/include/errno.h:
+
+structs.h:
+
+cfft.h:
+
+sbr_dec.h:
+
+ps_dec.h:
+
+bits.h:
+
+analysis.h:
