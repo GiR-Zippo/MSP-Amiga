@@ -17,8 +17,7 @@ enum PlayerStates
     PFLAG_INIT_DONE = (1 << 0),  //File geladen, alles initialisiert
     PFLAG_PLAYING   = (1 << 1),  //Wir spielen
     PFLAG_STOP      = (1 << 2),  //Just stopped _playback and _stream exists
-    PFLAG_SEEK      = (1 << 3),   //Wir seeken
-    PFLAG_SEEK_DONE = (1 << 4),
+    PFLAG_SEEK      = (1 << 3)  //Wir seeken
 };
 uint16_t _playerState = PFLAG_NON_INIT;
 
@@ -30,7 +29,6 @@ int main()
 {
     AHIPlayback *_playback = NULL;
     AudioStream *_stream = NULL;
-    uint32_t _seektime =0;
     if (setupGUI())
     {
         bool running = true;
@@ -64,8 +62,7 @@ int main()
                     {
                         if (hasFlag(PFLAG_INIT_DONE))
                         {
-                            long newPercent = msgCode; 
-                            uint32_t seekTime = (newPercent * _stream->getDuration()) / 100;
+                            uint32_t seekTime = ((uint32_t)msgCode * _stream->getDuration()) / 100;
                             _stream->seek(seekTime);
                             removeFlag(PFLAG_SEEK);
                         }
@@ -158,18 +155,6 @@ int main()
                     setFlag(PFLAG_STOP);
                 }
             }
-
-            if (hasFlag(PFLAG_SEEK_DONE))
-            {
-                if (_seektime > 0)
-                {
-                    _stream->seek(_seektime);
-                    _seektime =0;
-                    removeFlag(PFLAG_SEEK_DONE);
-                    removeFlag(PFLAG_SEEK);
-                }
-            }
-
         }
         cleanupGUI();
         if (hasFlag(PFLAG_PLAYING))

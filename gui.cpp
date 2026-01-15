@@ -53,7 +53,7 @@ bool setupGUI()
 
     // Zeitanzeige
     ng.ng_LeftEdge = 20;
-    ng.ng_TopEdge = 125; // Über dem Seeker
+    ng.ng_TopEdge = 125;
     ng.ng_Width = 260;
     ng.ng_Height = 12;
     ng.ng_GadgetText = (UBYTE *)"";
