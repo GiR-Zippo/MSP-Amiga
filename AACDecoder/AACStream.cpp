@@ -20,9 +20,7 @@ AACStream::AACStream()
 AACStream::~AACStream()
 {
     if (m_aac)
-    {
         dr_aac_close(m_aac);
-    }
 }
 
 bool AACStream::open(const char *filename)

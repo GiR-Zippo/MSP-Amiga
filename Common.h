@@ -25,6 +25,10 @@ typedef unsigned short wchar_t;
 #include <stdint.h>
 #endif
 
+#ifndef IPTR
+typedef unsigned long IPTR;
+#endif
+
 extern "C"
 {
     size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps) __attribute__((weak));

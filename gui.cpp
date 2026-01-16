@@ -83,7 +83,7 @@ bool setupGUI()
     ng.ng_TopEdge = 30;
     ng.ng_Width = 16;
     ng.ng_Height = 80;
-    ng.ng_GadgetText = (UBYTE *)"Vol";
+    ng.ng_GadgetText = (CONST_STRPTR)"Vol";
     ng.ng_GadgetID = ID_VOLUME;
 
     volGad = CreateGadget(SLIDER_KIND, context, &ng,
@@ -261,4 +261,9 @@ std::string openFileRequest()
     }
 
     return fullPath;
+}
+
+ULONG getWinSignal()
+{
+    return 1L << win->UserPort->mp_SigBit;
 }

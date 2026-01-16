@@ -26,6 +26,7 @@ void updateTimeDisplay(uint32_t lap, uint32_t total);
 void drawVideoPlaceholder();
 void drawVolumeLevel(long level);
 std::string openFileRequest();
+ULONG getWinSignal(); 
 
 // Globale Pointer, damit main.cpp darauf zugreifen kann
 extern struct Window *win;
