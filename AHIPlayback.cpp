@@ -46,7 +46,7 @@ bool AHIPlayback::Init()
     }
 
     // AHI Gerät öffnen
-    if (OpenDevice((UBYTE *)AHINAME, AHI_DEFAULT_ID, (struct IORequest *)m_req[0], 0))
+    if (OpenDevice((CONST_STRPTR)AHINAME, AHI_DEFAULT_ID, (struct IORequest *)m_req[0], 0))
         return false;
 
     // Zweiten Request mit denselben Geräte-Daten initialisieren

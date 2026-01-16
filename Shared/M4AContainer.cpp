@@ -115,8 +115,8 @@ void M4AReader::parseTrack(FILE *f, long trakEnd, M4AAudioTrackInfo &info)
             uint32_t entrySize = read32BE(f);
             char codecName[5] = {0};
             fread(codecName, 1, 4, f);
-            info.codec = codecName;
-
+            //info.codec = codecName;
+            strncpy(info.codec, codecName, 5);
             // In einem Audio-Eintrag (mp4a) liegen die Daten an festen Offsets:
             fseek(f, 16, SEEK_CUR); // Skip reserved(6), data_ref_idx(2), version(2), rev(2), vendor(4)
 

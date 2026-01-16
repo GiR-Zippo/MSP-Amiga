@@ -11,7 +11,8 @@ extern "C"
 
 struct Window *win = NULL;
 struct Gadget *gList = NULL;
-struct Gadget *seekerGad = NULL; // Interner Pointer für Updates
+struct Gadget *seekerGad = NULL;
+struct Gadget *volGad = NULL;
 struct Gadget *timeGad = NULL;
 struct Library *AslBase = NULL;
 void *visInfo = NULL;
@@ -30,7 +31,7 @@ void cleanupGUI()
 
 bool setupGUI()
 {
-    AslBase = OpenLibrary((UBYTE *)"asl.library", 37);
+    AslBase = OpenLibrary((CONST_STRPTR)"asl.library", 37);
     if (!AslBase)
     {
         printf("Fehler: ASL nicht vorhanden\n");
@@ -56,7 +57,7 @@ bool setupGUI()
     ng.ng_TopEdge = 125;
     ng.ng_Width = 260;
     ng.ng_Height = 12;
-    ng.ng_GadgetText = (UBYTE *)"";
+    ng.ng_GadgetText = (CONST_STRPTR)"";
     ng.ng_GadgetID = ID_TIME_DISPLAY;
     timeGad = CreateGadget(TEXT_KIND, context, &ng, 
                         GTTX_Text, (Tag)timeBuffer,
@@ -68,7 +69,7 @@ bool setupGUI()
     ng.ng_TopEdge = 140;
     ng.ng_Width = 260;
     ng.ng_Height = 12;
-    ng.ng_GadgetText = (UBYTE *)"";
+    ng.ng_GadgetText = (CONST_STRPTR)"";
     ng.ng_GadgetID = ID_SEEKER;
     seekerGad = CreateGadget(SLIDER_KIND, context, &ng,
                              GTSL_Min, 0,
@@ -78,12 +79,28 @@ bool setupGUI()
                              GA_RelVerify, TRUE,
                              TAG_END);
 
+    /*ng.ng_LeftEdge = 20;
+    ng.ng_TopEdge = 30;
+    ng.ng_Width = 16;
+    ng.ng_Height = 80;
+    ng.ng_GadgetText = (UBYTE *)"Vol";
+    ng.ng_GadgetID = ID_VOLUME;
+
+    volGad = CreateGadget(SLIDER_KIND, context, &ng,
+                        GTSL_Min, 0,
+                        GTSL_Max, 64,       // 0 bis 64 ist typisch Amiga
+                        GTSL_Level, 48,     // Startwert (75%)
+                        GTSL_MaxLevelLen, 2,
+                        GA_Immediate, TRUE, // Sofort reagieren beim Schieben
+                        GA_RelVerify, TRUE,
+                        TAG_END);
+*/
     // Play Button
     ng.ng_LeftEdge = 20;
     ng.ng_TopEdge = 160;
     ng.ng_Width = 80;
     ng.ng_Height = 20;
-    ng.ng_GadgetText = (UBYTE *)"Play";
+    ng.ng_GadgetText = (CONST_STRPTR)"Play";
     ng.ng_GadgetID = ID_PLAY;
     context = CreateGadget(BUTTON_KIND, seekerGad, &ng, TAG_END);
 
@@ -92,7 +109,7 @@ bool setupGUI()
     ng.ng_TopEdge = 160;
     ng.ng_Width = 80;
     ng.ng_Height = 20;
-    ng.ng_GadgetText = (UBYTE *)"Stop";
+    ng.ng_GadgetText = (CONST_STRPTR)"Stop";
     ng.ng_GadgetID = ID_STOP;
     context = CreateGadget(BUTTON_KIND, context, &ng, TAG_END);
 
@@ -101,7 +118,7 @@ bool setupGUI()
     ng.ng_TopEdge = 160;
     ng.ng_Width = 80;
     ng.ng_Height = 20;
-    ng.ng_GadgetText = (UBYTE *)"Open";
+    ng.ng_GadgetText = (CONST_STRPTR)"Open";
     ng.ng_GadgetID = ID_OPEN;
     context = CreateGadget(BUTTON_KIND, context, &ng, TAG_END);
 
@@ -125,7 +142,7 @@ bool setupGUI()
 
     GT_RefreshWindow(win, NULL);
     drawVideoPlaceholder();
-
+//drawVolumeLevel(10);
     return true;
 }
 
@@ -152,6 +169,25 @@ void updateSeeker(long percent)
     if (win && seekerGad)
     {
         GT_SetGadgetAttrs(seekerGad, win, NULL, GTSL_Level, percent, TAG_END);
+    }
+}
+
+void drawVolumeLevel(long level) {
+    if (!win) return;
+    struct RastPort *rp = win->RPort;
+
+    int x = 40; // Rechts neben dem Volume Slider
+    int y_bottom = 110;
+    int height = (level * 80) / 64; // Skaliert auf die Slider-Höhe
+
+    // Hintergrund (Schwarz)
+    SetAPen(rp, 1); 
+    RectFill(rp, x, 30, x + 5, 110);
+
+    // Pegel (z.B. Farbe 3 = Rot oder Grün)
+    if (level > 0) {
+        SetAPen(rp, (level > 50) ? 3 : 2); // Rot bei hoher Lautstärke
+        RectFill(rp, x, y_bottom - height, x + 5, y_bottom);
     }
 }
 

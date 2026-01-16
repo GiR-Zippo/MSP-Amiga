@@ -152,7 +152,9 @@ int main()
                 if(!_playback->Update())
                 {
                     _playback->Stop();
+                    _stream->seek(0);
                     setFlag(PFLAG_STOP);
+                    removeFlag(PFLAG_PLAYING);
                 }
             }
         }

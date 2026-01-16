@@ -10,9 +10,11 @@
 
 // Gadget IDs
 #define ID_SEEKER 1
-#define ID_PLAY   2
-#define ID_STOP   3
-#define ID_OPEN   4
+#define ID_VOLUME 2
+
+#define ID_PLAY   10
+#define ID_STOP   11
+#define ID_OPEN   12
 
 #define ID_TIME_DISPLAY 1004
 
@@ -22,6 +24,7 @@ void cleanupGUI();
 void updateSeeker(long percent);
 void updateTimeDisplay(uint32_t lap, uint32_t total);
 void drawVideoPlaceholder();
+void drawVolumeLevel(long level);
 std::string openFileRequest();
 
 // Globale Pointer, damit main.cpp darauf zugreifen kann

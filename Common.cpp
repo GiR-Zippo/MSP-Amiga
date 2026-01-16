@@ -1,6 +1,6 @@
 #include "Common.h"
 
-#ifdef HAS_NO_WCHAR
+//Bleibt so, dann compiled es
 size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps) {
     (void)ps; // Status wird am Amiga nicht benötigt
     
@@ -47,4 +47,3 @@ size_t wcslen(const wchar_t* s) {
     // Die Differenz der Zeiger ergibt die Anzahl der Elemente
     return static_cast<size_t>(p - s);
 }
-#endif

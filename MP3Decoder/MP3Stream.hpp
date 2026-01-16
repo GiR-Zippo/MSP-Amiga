@@ -3,7 +3,9 @@
 
 #include "AudioStream.hpp"
 
-#define DR_MP3_NO_WCHAR
+#ifdef OLD_GCC 
+    #define DR_MP3_NO_WCHAR
+#endif
 extern "C"
 {
 #include "dr_mp3.h"

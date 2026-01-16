@@ -3,9 +3,13 @@
 
 #include <cstdlib>
 #include <cstddef>
+#include <exec/types.h>
 
-//if we have clib2 aka wchar.h define this
-#define HAS_NO_WCHAR
+//set OLD_GCC as -DOLD_GCC flag, when using ADE
+#ifdef OLD_GCC
+#ifndef CONST_STRPTR
+typedef UBYTE * CONST_STRPTR;
+#endif
 
 //Some std typedefs
 typedef unsigned char uint8_t;
@@ -14,11 +18,16 @@ typedef unsigned long uint32_t;
 typedef unsigned long long uint64_t;
 
 //The wchar stuff we need
-#ifdef HAS_NO_WCHAR
-    typedef int mbstate_t;
-    typedef unsigned short wchar_t;
-    size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps);
-    size_t wcslen(const wchar_t* s);
+typedef int mbstate_t;
+typedef unsigned short wchar_t;
+#else
+#include <cwchar> 
+#include <stdint.h>
 #endif
 
+extern "C"
+{
+    size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps) __attribute__((weak));
+    size_t wcslen(const wchar_t* s) __attribute__((weak));
+}   
 #endif

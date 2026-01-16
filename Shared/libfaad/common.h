@@ -213,12 +213,13 @@ typedef float float32_t;
 # if HAVE_STDINT_H
 #  include <stdint.h>
 # else
+#ifdef OLD_GCC
 /* we need these... */
 
 typedef unsigned long uint32_t;
 typedef unsigned short uint16_t;
 typedef unsigned char uint8_t;
-
+#endif
 # endif
 #endif
 #if HAVE_UNISTD_H

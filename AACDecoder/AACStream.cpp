@@ -29,6 +29,7 @@ bool AACStream::open(const char *filename)
 {
     printf("Building seektable please wait ...\n");
     m_aac = dr_aac_open_file(filename);
+    printf("...done\n");
     if (!m_aac)
         return false;
     m_sampleRate = m_aac->samplerate;
