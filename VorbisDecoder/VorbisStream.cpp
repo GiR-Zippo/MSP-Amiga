@@ -1,5 +1,4 @@
 #include "VorbisStream.hpp"
-#include <cstdio>
 
 // WICHTIG für Amiga (Big Endian)
 #define STB_VORBIS_HEADER_ONLY

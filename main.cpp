@@ -30,38 +30,81 @@ uint16_t _playerState = PFLAG_NON_INIT;
 bool hasFlag(PlayerStates state) { return (_playerState & state) != 0; }
 void setFlag(PlayerStates state) { _playerState |= state; }
 void removeFlag(PlayerStates state) { _playerState &= ~state; }
+void clearFlags() { _playerState = 0; }
 /* ----- Playerstates End ----- */
+
 
 struct PlayerArgs
 {
-    AHIPlayback *playback;
     AudioStream *stream;
 };
 
+/* ------  the audio playback task  ------ */
 void PlayerTaskFunc()
 {
     // wart mal kurz
     Delay(1);
     struct Process *me = (struct Process *)FindTask(NULL);
     PlayerArgs *pb = (PlayerArgs *)me->pr_Task.tc_UserData;
+
+    bool _audioInitDone = false;
+    bool _updateWait = false;
+
+    //no data
     if (!pb)
         return;
 
+    //create the AHIPlayback in this scope
+    AHIPlayback *playback = new AHIPlayback(pb->stream);
     while (hasFlag(PFLAG_INIT_DONE))
     {
+        //sanitycheck
+        if (!pb || !pb->stream )
+        {
+            printf("Keine daten??\n");
+            break;
+        }
+        //wir sollen spielen, sind nicht initialisiert?
+        if (hasFlag(PFLAG_PLAYING) && !_audioInitDone)
+        {
+            playback->Init();
+            _audioInitDone = true;
+            removeFlag(PFLAG_STOP);
+        }
+
+        //wir sollen stoppen
+        if (hasFlag(PFLAG_STOP))
+        {
+            if (!_updateWait && hasFlag(PFLAG_PLAYING))
+            {
+                removeFlag(PFLAG_PLAYING);
+                playback->Stop();
+                pb->stream->seek(0);
+                _audioInitDone = false;
+            }
+        }
+        
+        //die Dudelroutine
         if (hasFlag(PFLAG_PLAYING) && !hasFlag(PFLAG_SEEK))
         {
-            if (!pb->playback->Update())
+            _updateWait = true;
+            if (!playback->Update())
             {
                 removeFlag(PFLAG_PLAYING);
                 setFlag(PFLAG_STOP);
-                pb->playback->Stop();
+                playback->Stop();
                 pb->stream->seek(0);
                 printf("Task: Song beendet.\n");
             }
+            _updateWait = false;
         }
-        Delay(1);
+        else
+            Delay(5); //gibt nix zu tun, also warte
     }
+
+    //und weg damit
+    delete playback;
+    clearFlags();
     printf("Task: Beendet.\n");
 }
 
@@ -70,9 +113,7 @@ void PlayerTaskFunc()
 /* -------------------------------------------------------------------------- */
 int main()
 {
-    AHIPlayback *_playback = NULL;
     AudioStream *_stream = NULL;
-
     if (setupGUI())
     {
         bool running = true;
@@ -90,12 +131,12 @@ int main()
         while (running)
         {
             ULONG signals = Wait(windowSig | SIGBREAKF_CTRL_C);
-
             if (signals & windowSig)
+            {
                 while ((msg = GT_GetIMsg(win->UserPort)))
                 {
                     struct Gadget *gad = (struct Gadget *)msg->IAddress;
-                    uint16 msgCode = msg->Code;
+                    uint16_t msgCode = msg->Code;
                     GT_ReplyIMsg(msg);
 
                     if (msg->Class == IDCMP_CLOSEWINDOW)
@@ -147,42 +188,24 @@ int main()
                     {
                         struct Gadget *gad = (struct Gadget *)msg->IAddress;
                         if (gad->GadgetID == ID_PLAY)
-                        {
-                            if (hasFlag(PFLAG_INIT_DONE))
-                            {
-                                _playback->Init();
-                                setFlag(PFLAG_PLAYING);
-                                removeFlag(PFLAG_STOP);
-                            }
-                        }
+                            setFlag(PFLAG_PLAYING);
                         else if (gad->GadgetID == ID_STOP)
-                        {
-                            if (hasFlag(PFLAG_PLAYING))
-                            {
-                                _playback->Stop();
-                                _stream->seek(0);
-                                removeFlag(PFLAG_PLAYING);
-                                setFlag(PFLAG_STOP);
-                            }
-                        }
+                            setFlag(PFLAG_STOP);
                         else if (gad->GadgetID == ID_OPEN)
                         {
-                            if (hasFlag(PFLAG_PLAYING))
+                            //Check if flags are set
+                            if(_playerState != PFLAG_NON_INIT)
                             {
-                                removeFlag(PFLAG_PLAYING);
-                                _playback->Stop();
-                            }
-
-                            if (!hasFlag(PFLAG_NON_INIT))
-                            {
-                                if (_playback)
-                                    delete _playback;
+                                setFlag(PFLAG_STOP);
+                                removeFlag(PFLAG_INIT_DONE);
+                                //wait for our task to be closed
+                                while (!_playerState == PFLAG_NON_INIT)
+                                    Delay(2);
+                                //remove stream only, task removed the audio
                                 if (_stream)
                                     delete _stream;
-                                _playback = NULL;
                                 _stream = NULL;
                             }
-                            _playerState = PFLAG_NON_INIT; // clear flags
                             std::string file = openFileRequest();
                             if (!file.empty())
                             {
@@ -199,46 +222,39 @@ int main()
 
                                 if (_stream->open(file.c_str()))
                                 {
-                                    _playback = new AHIPlayback(_stream);
-                                    setFlag(PFLAG_INIT_DONE);
                                     // prepare audio task and start audio task
                                     PlayerArgs g_args;
-                                    g_args.playback = _playback;
                                     g_args.stream = _stream;
                                     struct Process *playerProc = (struct Process *)CreateNewProc(playerTags);
                                     if (playerProc)
                                         playerProc->pr_Task.tc_UserData = (APTR)&g_args;
+                                    //tell the audio to start
+                                    setFlag(PFLAG_INIT_DONE);
                                 }
                             }
                         }
                     }
                 }
+            }
         }
-
         // Schluss jetzt
         cleanupGUI();
         printf("Cleabup\n");
 
+        //wir spielen? Aber nicht mehr lange
         if (hasFlag(PFLAG_PLAYING))
-        {
-            _playerState = PFLAG_NON_INIT;
-            _playback->Stop();
-        }
+            setFlag(PFLAG_STOP);
 
-        _playerState = PFLAG_NON_INIT;
-        while (FindTask((CONST_STRPTR)"Audio_Engine"))
+        //den Task beenden
+        removeFlag(PFLAG_INIT_DONE);
+        int timeout = 100;
+        while ((!_playerState == PFLAG_NON_INIT) && timeout-- > 0)
             Delay(2);
 
-        if (_playback)
-            delete _playback;
+        //stream löschen, der gehört zu uns
         if (_stream)
             delete _stream;
-        _playback = NULL;
-        _stream = NULL;
-
-        // clear flags
         printf("Cleabup done\n");
     }
-
     return 0;
 }

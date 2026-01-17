@@ -1,6 +1,4 @@
 #include "FlacStream.hpp"
-#include <cstdio>
-#include <cstdlib>
 
 #define DR_FLAC_IMPLEMENTATION
 #define DR_FLAC_NO_WCHAR

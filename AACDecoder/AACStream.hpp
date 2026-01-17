@@ -2,7 +2,6 @@
 #define AAC_STREAM_HPP
 
 #include "AudioStream.hpp"
-#include <stdio.h>
 
 extern "C" {
 #include "../Shared/libfaad/faad.h"

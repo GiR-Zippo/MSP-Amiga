@@ -1,6 +1,4 @@
 #include "M4ADecoder.hpp"
-#include <string.h>
-
 #include "../Shared/M4AContainer.hpp"
 
 M4AStream::M4AStream()
@@ -15,9 +13,7 @@ M4AStream::M4AStream()
 M4AStream::~M4AStream()
 {
     if (m_aac)
-    {
         delete m_aac;
-    }
 }
 
 bool M4AStream::open(const char *filename)

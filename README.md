@@ -9,3 +9,6 @@ https://github.com/AmigaPorts/m68k-amigaos-gcc
 
 You can also compile via ADE native on your Amiga set USE_ADE = 1 in MakeFile
 Be awe this will take some time, grab a coffee and compile
+
+## ADE
+if you are using ADE and the old gcc2.9 you might need the patched ahi.h in the patch folder

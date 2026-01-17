@@ -1,11 +1,6 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include <exec/types.h>
-#include <intuition/intuition.h>
-#include <intuition/gadgetclass.h>
-#include <string>
-#include <proto/asl.h>
 #include "Common.h"
 
 // Gadget IDs

@@ -1,11 +1,5 @@
 #include "AHIPlayback.hpp"
 #include "AudioStream.hpp"
-#include <iostream>
-#include <utility/tagitem.h>
-#include <proto/dos.h>
-#include <hardware/cia.h>
-#include <proto/cia.h>
-#include <stdio.h>
 
 #define BUFSIZE 16384
 #define TYPE AHIST_S16S
@@ -13,7 +7,7 @@
 volatile unsigned char *ciaa_porta = (unsigned char *)0xBFE001;
 
 AHIPlayback::AHIPlayback(AudioStream *s)
-    : m_port(NULL), m_active(false), m_stream(s)
+    : m_stream(s), m_port(NULL), m_active(false)
 {
     m_req[0] = m_req[1] = NULL;
     m_buffer[0] = new short[BUFSIZE / sizeof(short)];
@@ -64,32 +58,23 @@ bool AHIPlayback::Init()
 
 bool AHIPlayback::Update()
 {
-// 1. Prüfen, ob der aktuelle Request überhaupt schon fertig ist
-    // CheckIO gibt den Request zurück, wenn er fertig ist, sonst NULL.
-    if (CheckIO((struct IORequest *)m_req[m_current])) 
-    {
-        // 2. WICHTIG: Den Request mit WaitIO "abholen". 
-        // Da CheckIO bereits TRUE war, blockiert WaitIO hier NICHT mehr.
-        // Es räumt nur die Message-Queue sauber auf.
-        WaitIO((struct IORequest *)m_req[m_current]);
+    // Warte hart, bis der aktuelle Request fertig ist.
+    // Wenn er noch spielt, schläft der Task hier (0% CPU).
+    // Wenn er schon fertig ist, kehrt WaitIO sofort zurück.
+    WaitIO((struct IORequest *)m_req[m_current]);
 
-        // 3. Puffer neu füllen
-        if (fillBufferFromStream(m_buffer[m_current], BUFSIZE, m_bytesRead))
-        {
-            // 4. Wieder abschicken
-            sendRequest(m_req[m_current], m_buffer[m_current], m_bytesRead, m_req[1 - m_current]);
-            
-            // 5. Index umschalten
-            m_current = 1 - m_current;
-            return true;
-        }
-        else {
-            return false; // Song Ende
-        }
+    // Neu füllen:
+    if (fillBufferFromStream(m_buffer[m_current], BUFSIZE, m_bytesRead))
+    {
+        // Request wieder abschicken
+        sendRequest(m_req[m_current], m_buffer[m_current], m_bytesRead, m_req[1 - m_current]);
+
+        // Index umschalten
+        m_current = 1 - m_current;
+        return true;
     }
 
-    // Falls der Puffer noch spielt, einfach weitermachen (non-blocking)
-    return true;
+    return false; // Song Ende
 }
 
 void AHIPlayback::Stop()
@@ -97,12 +82,16 @@ void AHIPlayback::Stop()
     if (m_req[0] && m_req[0]->ahir_Std.io_Device)
     {
         AbortIO((struct IORequest *)m_req[0]);
-        WaitIO((struct IORequest *)m_req[0]);
         AbortIO((struct IORequest *)m_req[1]);
+        WaitIO((struct IORequest *)m_req[0]);
         WaitIO((struct IORequest *)m_req[1]);
+        if (m_port)
+        {
+            struct Message *msg;
+            while ((msg = GetMsg(m_port))) {}
+        }
         CloseDevice((struct IORequest *)m_req[0]);
     }
-
     if (m_req[0])
         DeleteIORequest(m_req[0]);
     if (m_req[1])
@@ -110,28 +99,9 @@ void AHIPlayback::Stop()
     if (m_port)
         DeleteMsgPort(m_port);
 
+    m_port = NULL;
+    m_req[0] = m_req[1] = NULL;
     m_active = false;
-}
-
-void AHIPlayback::ReinitBuffer(bool fill)
-{
-    if (fill)
-{
-m_current = 0; 
-    // Erste Füllung nach Seek
-    if (fillBufferFromStream(m_buffer[m_current], BUFSIZE, m_bytesRead)) {
-        sendRequest(m_req[m_current], m_buffer[m_current], m_bytesRead, NULL);
-        m_current = 1 - m_current;
-    }
-
-}
-    else
-    {
-AbortIO((struct IORequest*)m_req[0]);
-    WaitIO((struct IORequest*)m_req[0]);
-    AbortIO((struct IORequest*)m_req[1]);
-    WaitIO((struct IORequest*)m_req[1]);
-    }
 }
 
 bool AHIPlayback::fillBufferFromStream(short *buf, int maxBytes, int &m_bytesRead)

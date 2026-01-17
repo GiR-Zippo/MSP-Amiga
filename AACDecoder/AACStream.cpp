@@ -1,6 +1,4 @@
 #include "AACStream.hpp"
-#include "../Shared/M4AContainer.hpp"
-#include <string.h>
 
 extern "C"
 {

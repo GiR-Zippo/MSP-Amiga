@@ -3,7 +3,33 @@
 
 #include <cstdlib>
 #include <cstddef>
+#include <iostream>
+#include <stdio.h>
+#include <string.h>
+#include <string>
+#include <vector>
+
+#include <exec/ports.h>
 #include <exec/types.h>
+
+#include <devices/ahi.h>
+
+#include <hardware/cia.h>
+
+#include <intuition/intuition.h>
+#include <intuition/gadgetclass.h>
+
+#include <proto/ahi.h>
+#include <proto/asl.h>
+#include <proto/cia.h>
+#include <proto/dos.h>
+#include <proto/exec.h>
+#include <proto/intuition.h>
+#include <proto/gadtools.h>
+#include <proto/graphics.h>
+
+#include <utility/tagitem.h>
+
 
 //set OLD_GCC as -DOLD_GCC flag, when using ADE
 #ifdef OLD_GCC

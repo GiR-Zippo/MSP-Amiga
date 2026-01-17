@@ -2,9 +2,6 @@
 #define M4A_STREAM_HPP
 
 #include "AudioStream.hpp"
-#include <stdio.h>
-#include <cstdio>
-#include "../Common.h"
 #include "../AACDecoder/AACStream.hpp"
 
 /*********************************************************/

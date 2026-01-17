@@ -1,13 +1,4 @@
 #include "gui.hpp"
-#include <proto/intuition.h>
-#include <proto/gadtools.h>
-#include <proto/graphics.h>
-#include <proto/exec.h>
-#include <stdio.h>
-extern "C"
-{
-#include <proto/asl.h>
-}
 
 struct Window *win = NULL;
 struct Gadget *gList = NULL;
@@ -35,6 +26,7 @@ bool setupGUI()
     if (!AslBase)
     {
         printf("Fehler: ASL nicht vorhanden\n");
+        return false;
     }
 
     struct Screen *scr = LockPubScreen(NULL);
@@ -263,7 +255,4 @@ std::string openFileRequest()
     return fullPath;
 }
 
-ULONG getWinSignal()
-{
-    return 1L << win->UserPort->mp_SigBit;
-}
+ULONG getWinSignal(){ return 1L << win->UserPort->mp_SigBit; }

@@ -1,9 +1,6 @@
 #include "MP3Stream.hpp"
-#include <cstdio>
-#include <cstdlib>
-
-
 #include "../Shared/id3/id3v2.hpp"
+
 extern "C"
 {
 #define DR_MP3_IMPLEMENTATION

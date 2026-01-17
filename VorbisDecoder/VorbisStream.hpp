@@ -1,8 +1,6 @@
 #ifndef VORBIS_STREAM_HPP
 #define VORBIS_STREAM_HPP
 
-#include <exec/types.h>
-#include <vector>
 #include "../AudioStream.hpp"
 
 struct stb_vorbis;
