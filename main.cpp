@@ -37,6 +37,7 @@ void clearFlags() { _playerState = 0; }
 struct PlayerArgs
 {
     AudioStream *stream;
+    uint16_t volumeLevel;
 };
 
 /* ------  the audio playback task  ------ */
@@ -64,6 +65,10 @@ void PlayerTaskFunc()
             printf("Keine daten??\n");
             break;
         }
+
+        if (playback->GetVolume() != pb->volumeLevel)
+            playback->SetVolume(pb->volumeLevel);
+
         //wir sollen spielen, sind nicht initialisiert?
         if (hasFlag(PFLAG_PLAYING) && !_audioInitDone)
         {
@@ -114,11 +119,13 @@ void PlayerTaskFunc()
 int main()
 {
     AudioStream *_stream = NULL;
-    if (setupGUI())
+    MainUi *_mainUi = new MainUi();
+    if (_mainUi->SetupGUI())
     {
         bool running = true;
         struct IntuiMessage *msg;
         _playerState = PFLAG_NON_INIT;
+        struct Process *playerProc;
 
         struct TagItem playerTags[] = {
             {NP_Entry, (IPTR)PlayerTaskFunc},
@@ -127,13 +134,13 @@ int main()
             {NP_StackSize, 32768},
             {TAG_DONE, 0}};
 
-        ULONG windowSig = getWinSignal();
+        ULONG windowSig = _mainUi->GetWinSignal();
         while (running)
         {
             ULONG signals = Wait(windowSig | SIGBREAKF_CTRL_C);
             if (signals & windowSig)
             {
-                while ((msg = GT_GetIMsg(win->UserPort)))
+                while ((msg = GT_GetIMsg(_mainUi->GetWindow()->UserPort)))
                 {
                     struct Gadget *gad = (struct Gadget *)msg->IAddress;
                     uint16_t msgCode = msg->Code;
@@ -141,15 +148,14 @@ int main()
 
                     if (msg->Class == IDCMP_CLOSEWINDOW)
                         running = false;
-
                     if (msg->Class == IDCMP_INTUITICKS)
                     {
                         if (hasFlag(PFLAG_INIT_DONE))
                         {
                             if (hasFlag(PFLAG_PLAYING) && !hasFlag(PFLAG_SEEK))
                             {
-                                updateTimeDisplay(_stream->getCurrentSeconds(), _stream->getDuration());
-                                updateSeeker((int)((_stream->getCurrentSeconds() * 100) / _stream->getDuration()));
+                                _mainUi->UpdateTimeDisplay(_stream->getCurrentSeconds(), _stream->getDuration());
+                                _mainUi->UpdateSeeker((int)((_stream->getCurrentSeconds() * 100) / _stream->getDuration()));
                             }
                         }
                     }
@@ -165,6 +171,16 @@ int main()
                                 removeFlag(PFLAG_SEEK);
                             }
                         }
+                        if (gad->GadgetID == ID_VOLUME)
+                        {
+                            if (hasFlag(PFLAG_INIT_DONE))
+                            if(playerProc)
+                            {
+                                PlayerArgs *pb = (PlayerArgs *)playerProc->pr_Task.tc_UserData;
+                                if (msgCode == 0) msgCode++;
+                                pb->volumeLevel = ((msgCode*0x10000) / 100)-1;
+                            }
+                        }
                     }
 
                     if (msg->Class == IDCMP_MOUSEMOVE)
@@ -174,7 +190,7 @@ int main()
                             if (hasFlag(PFLAG_INIT_DONE))
                             {
                                 uint32_t seekTime = (msgCode * _stream->getDuration()) / 100;
-                                updateTimeDisplay(seekTime, _stream->getDuration());
+                                _mainUi->UpdateTimeDisplay(seekTime, _stream->getDuration());
                             }
                         }
                     }
@@ -206,7 +222,8 @@ int main()
                                     delete _stream;
                                 _stream = NULL;
                             }
-                            std::string file = openFileRequest();
+
+                            std::string file = _mainUi->OpenFileRequest();
                             if (!file.empty())
                             {
                                 if (strstr(file.c_str(), ".mp3"))
@@ -225,7 +242,7 @@ int main()
                                     // prepare audio task and start audio task
                                     PlayerArgs g_args;
                                     g_args.stream = _stream;
-                                    struct Process *playerProc = (struct Process *)CreateNewProc(playerTags);
+                                    playerProc = (struct Process *)CreateNewProc(playerTags);
                                     if (playerProc)
                                         playerProc->pr_Task.tc_UserData = (APTR)&g_args;
                                     //tell the audio to start
@@ -238,7 +255,8 @@ int main()
             }
         }
         // Schluss jetzt
-        cleanupGUI();
+        _mainUi->CleanupGUI();
+        delete _mainUi;
         printf("Cleabup\n");
 
         //wir spielen? Aber nicht mehr lange

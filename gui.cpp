@@ -1,29 +1,56 @@
 #include "gui.hpp"
 
-struct Window *win = NULL;
-struct Gadget *gList = NULL;
-struct Gadget *seekerGad = NULL;
-struct Gadget *volGad = NULL;
-struct Gadget *timeGad = NULL;
-struct Library *AslBase = NULL;
-void *visInfo = NULL;
+
+static struct TagItem seekerTags[] = {
+    {GTSL_Min, 0}, {GTSL_Max, 100}, {GTSL_Level, 0}, {GA_Immediate, TRUE}, {GA_RelVerify, TRUE}, {TAG_DONE, 0}
+};
+
+static struct TagItem volTags[] = { 
+    {GTSL_Min, 0}, {GTSL_Max, 100}, {GTSL_Level, 100}, {PGA_Freedom, LORIENT_VERT}, {GA_Immediate, TRUE}, {GA_RelVerify, TRUE}, {TAG_DONE, 0}
+};
+
+static struct TagItem timeTags[] = {
+    {GTTX_Border, TRUE}, {GTTX_Text, (IPTR)""}, {TAG_DONE, 0}
+};
+
+static struct TagItem buttonTags[] = {
+    {GTTX_Border, TRUE}, {TAG_DONE, 0}
+};
+
+static struct PlayerGadgetDef playerGadgets[] = {
+    // Kind         X    Y    W    H    Label    ID               Tags
+    { TEXT_KIND,    20, 125, 260, 14,   "",      ID_TIME_DISPLAY, timeTags },
+    { SLIDER_KIND,  20, 142, 260, 12,   "",      ID_SEEKER,       seekerTags },
+    { SLIDER_KIND, 285,  30,  10, 124,  "",      ID_VOLUME,       volTags },
+    { BUTTON_KIND,  20, 160,  80,  20,  "Play",  ID_PLAY,         buttonTags },
+    { BUTTON_KIND, 110, 160,  80,  20,  "Stop",  ID_STOP,         buttonTags },
+    { BUTTON_KIND, 200, 160,  80,  20,  "Open",  ID_OPEN,         buttonTags }
+};
 
 static char timeBuffer[32] = "00:00 / 00:00";
 
-void cleanupGUI()
+MainUi::MainUi()
 {
-    if (win)
-        CloseWindow(win);
-    if (gList)
-        FreeGadgets(gList);
-    if (visInfo)
-        FreeVisualInfo(visInfo);
+    m_win = NULL;
+    m_gList = NULL;
+    m_visInfo = NULL;
+    m_AslBase = NULL;
 }
 
-bool setupGUI()
+void MainUi::CleanupGUI()
 {
-    AslBase = OpenLibrary((CONST_STRPTR)"asl.library", 37);
-    if (!AslBase)
+    if (m_win)
+        CloseWindow(m_win);
+    if (m_gList)
+        FreeGadgets(m_gList);
+    if (m_visInfo)
+        FreeVisualInfo(m_visInfo);
+}
+
+bool MainUi::SetupGUI()
+{
+    m_AslBase = OpenLibrary((CONST_STRPTR)"asl.library", 37);
+    if (!m_AslBase)
     {
         printf("Fehler: ASL nicht vorhanden\n");
         return false;
@@ -33,89 +60,40 @@ bool setupGUI()
     if (!scr)
         return false;
 
-    visInfo = GetVisualInfo(scr, TAG_END);
+    m_visInfo = GetVisualInfo(scr, TAG_END);
     struct NewGadget ng;
     struct Gadget *context;
 
-    context = CreateContext(&gList);
+    context = CreateContext(&m_gList);
 
     // Gemeinsame Einstellungen für alle Gadgets
-    ng.ng_VisualInfo = visInfo;
+    ng.ng_VisualInfo = m_visInfo;
     ng.ng_TextAttr = NULL;
     ng.ng_Flags = 0;
 
-    // Zeitanzeige
-    ng.ng_LeftEdge = 20;
-    ng.ng_TopEdge = 125;
-    ng.ng_Width = 260;
-    ng.ng_Height = 12;
-    ng.ng_GadgetText = (CONST_STRPTR)"";
-    ng.ng_GadgetID = ID_TIME_DISPLAY;
-    timeGad = CreateGadget(TEXT_KIND, context, &ng, 
-                        GTTX_Text, (Tag)timeBuffer,
-                        GTTX_Border, TRUE,
-                        TAG_END);
+    //lese gads ein und baue sie
+    for (int i = 0; i < PLAYER_GADS_COUNT; i++)
+    {
+        ng.ng_LeftEdge   = playerGadgets[i].x;
+        ng.ng_TopEdge    = playerGadgets[i].y;
+        ng.ng_Width      = playerGadgets[i].w;
+        ng.ng_Height     = playerGadgets[i].h;
+        ng.ng_GadgetText = (CONST_STRPTR)playerGadgets[i].label;
+        ng.ng_GadgetID   = playerGadgets[i].id;
+        ng.ng_VisualInfo = m_visInfo;
 
-    // Der Seeker
-    ng.ng_LeftEdge = 20;
-    ng.ng_TopEdge = 140;
-    ng.ng_Width = 260;
-    ng.ng_Height = 12;
-    ng.ng_GadgetText = (CONST_STRPTR)"";
-    ng.ng_GadgetID = ID_SEEKER;
-    seekerGad = CreateGadget(SLIDER_KIND, context, &ng,
-                             GTSL_Min, 0,
-                             GTSL_Max, 100,
-                             GTSL_Level, 0,
-                             GA_Immediate, TRUE,
-                             GA_RelVerify, TRUE,
-                             TAG_END);
+        m_gads[i] = CreateGadgetA(playerGadgets[i].kind, context, &ng, playerGadgets[i].tags);
 
-    /*ng.ng_LeftEdge = 20;
-    ng.ng_TopEdge = 30;
-    ng.ng_Width = 16;
-    ng.ng_Height = 80;
-    ng.ng_GadgetText = (CONST_STRPTR)"Vol";
-    ng.ng_GadgetID = ID_VOLUME;
+        //timedisplay will ne extrawurst
+        if (playerGadgets[i].id == ID_TIME_DISPLAY && m_gads[i])
+            GT_SetGadgetAttrs(m_gads[i], m_win, NULL, GTTX_Text, (IPTR)timeBuffer, TAG_DONE);
 
-    volGad = CreateGadget(SLIDER_KIND, context, &ng,
-                        GTSL_Min, 0,
-                        GTSL_Max, 64,       // 0 bis 64 ist typisch Amiga
-                        GTSL_Level, 48,     // Startwert (75%)
-                        GTSL_MaxLevelLen, 2,
-                        GA_Immediate, TRUE, // Sofort reagieren beim Schieben
-                        GA_RelVerify, TRUE,
-                        TAG_END);
-*/
-    // Play Button
-    ng.ng_LeftEdge = 20;
-    ng.ng_TopEdge = 160;
-    ng.ng_Width = 80;
-    ng.ng_Height = 20;
-    ng.ng_GadgetText = (CONST_STRPTR)"Play";
-    ng.ng_GadgetID = ID_PLAY;
-    context = CreateGadget(BUTTON_KIND, seekerGad, &ng, TAG_END);
-
-    // Stop Button
-    ng.ng_LeftEdge = 110;
-    ng.ng_TopEdge = 160;
-    ng.ng_Width = 80;
-    ng.ng_Height = 20;
-    ng.ng_GadgetText = (CONST_STRPTR)"Stop";
-    ng.ng_GadgetID = ID_STOP;
-    context = CreateGadget(BUTTON_KIND, context, &ng, TAG_END);
-
-    // Stop Button
-    ng.ng_LeftEdge = 200;
-    ng.ng_TopEdge = 160;
-    ng.ng_Width = 80;
-    ng.ng_Height = 20;
-    ng.ng_GadgetText = (CONST_STRPTR)"Open";
-    ng.ng_GadgetID = ID_OPEN;
-    context = CreateGadget(BUTTON_KIND, context, &ng, TAG_END);
+        if (m_gads[i])
+            context = m_gads[i];
+    }
 
     // Fenster öffnen
-    win = OpenWindowTags(NULL,
+    m_win = OpenWindowTags(NULL,
                          WA_Title, (Tag) "My Shitty Player",
                          WA_Left, 50,
                          WA_Top, 50,
@@ -124,26 +102,26 @@ bool setupGUI()
                          WA_IDCMP, IDCMP_GADGETUP | IDCMP_GADGETDOWN | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS | IDCMP_CLOSEWINDOW,
                          WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
                          WA_PubScreen, (Tag)scr,
-                         WA_Gadgets, (Tag)gList,
+                         WA_Gadgets, (Tag)m_gList,
                          TAG_END);
 
     UnlockPubScreen(NULL, scr);
 
-    if (!win)
+    if (!m_win)
         return false;
 
-    GT_RefreshWindow(win, NULL);
+    GT_RefreshWindow(m_win, NULL);
     drawVideoPlaceholder();
-//drawVolumeLevel(10);
+drawVolumeLevel(30);
     return true;
 }
 
 // Zeichnet das schwarze "Video"-Viereck
-void drawVideoPlaceholder()
+void MainUi::drawVideoPlaceholder()
 {
-    if (!win)
+    if (!m_win)
         return;
-    struct RastPort *rp = win->RPort;
+    struct RastPort *rp = m_win->RPort;
 
     // Rahmen zeichnen
     SetAPen(rp, 1); // Meist Schwarz/Blau je nach Palette
@@ -156,25 +134,25 @@ void drawVideoPlaceholder()
 }
 
 // Aktualisiert den Slider von außen
-void updateSeeker(long percent)
+void MainUi::UpdateSeeker(long percent)
 {
-    if (win && seekerGad)
-    {
-        GT_SetGadgetAttrs(seekerGad, win, NULL, GTSL_Level, percent, TAG_END);
-    }
+    if (m_win && m_gads[ID_SEEKER])
+        GT_SetGadgetAttrs(m_gads[ID_SEEKER], m_win, NULL, GTSL_Level, percent, TAG_END);
 }
 
-void drawVolumeLevel(long level) {
-    if (!win) return;
-    struct RastPort *rp = win->RPort;
+void MainUi::drawVolumeLevel(long level) {
+    return;
+    //noch nicht
+    if (!m_win) return;
+    struct RastPort *rp = m_win->RPort;
 
-    int x = 40; // Rechts neben dem Volume Slider
-    int y_bottom = 110;
+    int x = 287; // Rechts neben dem Volume Slider
+    int y_bottom = 123;
     int height = (level * 80) / 64; // Skaliert auf die Slider-Höhe
 
     // Hintergrund (Schwarz)
     SetAPen(rp, 1); 
-    RectFill(rp, x, 30, x + 5, 110);
+    RectFill(rp, x, 287, x + 5, 123);
 
     // Pegel (z.B. Farbe 3 = Rot oder Grün)
     if (level > 0) {
@@ -183,7 +161,7 @@ void drawVolumeLevel(long level) {
     }
 }
 
-static void formatTimeOldschool(char* b, uint32_t s)
+void MainUi::formatTimeOldschool(char* b, uint32_t s)
 {
     uint32_t h = s / 3600;
     uint32_t m = (s % 3600) / 60;
@@ -195,9 +173,9 @@ static void formatTimeOldschool(char* b, uint32_t s)
         sprintf(b, "%02lu:%02lu", (unsigned long)m, (unsigned long)sec);
 }
 
-void updateTimeDisplay(uint32_t lap, uint32_t total)
+void MainUi::UpdateTimeDisplay(uint32_t lap, uint32_t total)
 {
-    if (!win || !timeGad) return;
+    if (!m_win || !m_gads[ID_TIME_DISPLAY]) return;
 
     // Zeit berechnen
     uint32_t curSec  = lap;
@@ -211,21 +189,15 @@ void updateTimeDisplay(uint32_t lap, uint32_t total)
     sprintf(timeBuffer, "%s / %s", lapBuf, durBuf);
 
     // Gadget aktualisieren
-    GT_SetGadgetAttrs(timeGad, win, NULL, GTTX_Text, (Tag)timeBuffer, TAG_DONE);
+    GT_SetGadgetAttrs(m_gads[ID_TIME_DISPLAY], m_win, NULL, GTTX_Text, (Tag)timeBuffer, TAG_DONE);
 }
 
-std::string openFileRequest()
+std::string MainUi::OpenFileRequest()
 {
     std::string fullPath = "";
-
-    // 1. Erstelle den Requester
     struct FileRequester *fr = (struct FileRequester *)AllocAslRequest(ASL_FileRequest, NULL);
-
     if (fr)
     {
-        // 2. Dialog anzeigen
-        // ASLFR_Title: Der Titel des Fensters
-        // ASLFR_InitialDrawer: Wo der Dialog startet (z.B. "Work:")
         if (AslRequestTags(fr,
                            ASLFR_TitleText, (Tag) "Datei auswählen...",
                            ASLFR_InitialDrawer, (Tag) "RAM:",
@@ -233,7 +205,6 @@ std::string openFileRequest()
                            ASLFR_InitialPattern, (Tag) "#?.(aac|m4a|flac|mp3|ogg)", // Das eigentliche Pattern
                            TAG_DONE))
         {
-            // 3. Ergebnis zusammenbauen
             std::string drawer = (char *)fr->fr_Drawer;
             std::string file = (char *)fr->fr_File;
 
@@ -247,12 +218,7 @@ std::string openFileRequest()
             }
             fullPath += file;
         }
-
-        // 4. Speicher wieder freigeben
         FreeAslRequest(fr);
     }
-
     return fullPath;
 }
-
-ULONG getWinSignal(){ return 1L << win->UserPort->mp_SigBit; }

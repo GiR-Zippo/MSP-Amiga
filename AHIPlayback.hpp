@@ -24,6 +24,12 @@ class AHIPlayback
         /// @brief Stops everything, not freeing the buffers
         void Stop();
 
+        /// @brief Sets the volume
+        void SetVolume(uint16_t volume) { m_volume = volume; }
+
+        /// @brief Get the volume
+        uint16_t GetVolume() { return m_volume; }
+
     private:
         /// @brief Fill the audiobuffer
         /// @return true if we have samples
@@ -46,7 +52,7 @@ class AHIPlayback
         // Konstanten für die Konfiguration
         static const uint32_t BUFSIZE = 16384;
         static const uint16_t AHI_TYPE = AHIST_S16S;
-
+        uint16_t m_volume;
         bool m_pause;
 };
 

@@ -14,6 +14,7 @@ AHIPlayback::AHIPlayback(AudioStream *s)
     m_buffer[1] = new short[BUFSIZE / sizeof(short)];
     m_bytesRead = 0;
     m_current = 0;
+    m_volume = 0x10000;
     m_pause = false;
     setAmigaFilter(true);
 }
@@ -120,7 +121,7 @@ void AHIPlayback::sendRequest(struct AHIRequest *r, short *data, int length, str
     r->ahir_Std.io_Length = length;
     r->ahir_Type = AHI_TYPE;
     r->ahir_Frequency = m_stream->getSampleRate();
-    r->ahir_Volume = 0x10000;  // Volle Lautstärke
+    r->ahir_Volume = m_volume;
     r->ahir_Position = 0x8000; // Center
     r->ahir_Link = link;
     SendIO((struct IORequest *)r);
