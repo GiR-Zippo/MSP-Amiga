@@ -8,10 +8,11 @@
 #define ID_VOLUME 1
 
 #define ID_PLAY   2
-#define ID_STOP   3
-#define ID_OPEN   4
-#define ID_TIME_DISPLAY 5
-#define PLAYER_GADS_COUNT 6
+#define ID_PAUSE  3
+#define ID_STOP   4
+#define ID_OPEN   5
+#define ID_TIME_DISPLAY 6
+#define PLAYER_GADS_COUNT 7
 
 struct PlayerGadgetDef {
     uint32_t kind;

@@ -19,12 +19,13 @@ static struct TagItem buttonTags[] = {
 
 static struct PlayerGadgetDef playerGadgets[] = {
     // Kind         X    Y    W    H    Label    ID               Tags
-    { TEXT_KIND,    20, 125, 260, 14,   "",      ID_TIME_DISPLAY, timeTags },
     { SLIDER_KIND,  20, 142, 260, 12,   "",      ID_SEEKER,       seekerTags },
     { SLIDER_KIND, 285,  30,  10, 124,  "",      ID_VOLUME,       volTags },
-    { BUTTON_KIND,  20, 160,  80,  20,  "Play",  ID_PLAY,         buttonTags },
-    { BUTTON_KIND, 110, 160,  80,  20,  "Stop",  ID_STOP,         buttonTags },
-    { BUTTON_KIND, 200, 160,  80,  20,  "Open",  ID_OPEN,         buttonTags }
+    { BUTTON_KIND,  20, 160,  60,  20,  "Play",  ID_PLAY,         buttonTags },
+    { BUTTON_KIND,  87, 160,  60,  20,  "Pause", ID_PAUSE,        buttonTags },
+    { BUTTON_KIND, 153, 160,  60,  20,  "Stop",  ID_STOP,         buttonTags },
+    { BUTTON_KIND, 218, 160,  60,  20,  "Open",  ID_OPEN,         buttonTags },
+    { TEXT_KIND,    20, 125, 260, 14,   "",      ID_TIME_DISPLAY, timeTags }
 };
 
 static char timeBuffer[32] = "00:00 / 00:00";
@@ -85,6 +86,10 @@ bool MainUi::SetupGUI()
         m_gads[i] = CreateGadgetA(playerGadgets[i].kind, context, &ng, playerGadgets[i].tags);
 
         //timedisplay will ne extrawurst
+        if (playerGadgets[i].id == ID_SEEKER && m_gads[i])
+            GT_SetGadgetAttrs(m_gads[i], m_win, NULL, GTSL_Level, 0, TAG_END);
+        if (playerGadgets[i].id == ID_VOLUME && m_gads[i])
+            GT_SetGadgetAttrs(m_gads[i], m_win, NULL, GTSL_Level, 100, TAG_END);
         if (playerGadgets[i].id == ID_TIME_DISPLAY && m_gads[i])
             GT_SetGadgetAttrs(m_gads[i], m_win, NULL, GTTX_Text, (IPTR)timeBuffer, TAG_DONE);
 
@@ -112,7 +117,7 @@ bool MainUi::SetupGUI()
 
     GT_RefreshWindow(m_win, NULL);
     drawVideoPlaceholder();
-drawVolumeLevel(30);
+//drawVolumeLevel(30);
     return true;
 }
 

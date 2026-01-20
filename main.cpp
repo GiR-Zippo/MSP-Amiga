@@ -22,13 +22,15 @@ enum PlayerStates
     PFLAG_INIT_DONE = (1 << 0), // File geladen, alles initialisiert
     PFLAG_PLAYING = (1 << 1),   // Wir spielen
     PFLAG_STOP = (1 << 2),      // Just stopped _playback and _stream exists
-    PFLAG_SEEK = (1 << 3)       // Wir seeken
+    PFLAG_SEEK = (1 << 3),      // Wir seeken
+    PFLAG_PAUSE = (1 << 4)      // Pause
 
 };
 uint16_t _playerState = PFLAG_NON_INIT;
 
 bool hasFlag(PlayerStates state) { return (_playerState & state) != 0; }
 void setFlag(PlayerStates state) { _playerState |= state; }
+void toggleFlag(PlayerStates state) { _playerState ^= state; }
 void removeFlag(PlayerStates state) { _playerState &= ~state; }
 void clearFlags() { _playerState = 0; }
 /* ----- Playerstates End ----- */
@@ -61,10 +63,7 @@ void PlayerTaskFunc()
     {
         //sanitycheck
         if (!pb || !pb->stream )
-        {
-            printf("Keine daten??\n");
             break;
-        }
 
         if (playback->GetVolume() != pb->volumeLevel)
             playback->SetVolume(pb->volumeLevel);
@@ -90,7 +89,7 @@ void PlayerTaskFunc()
         }
         
         //die Dudelroutine
-        if (hasFlag(PFLAG_PLAYING) && !hasFlag(PFLAG_SEEK))
+        if (hasFlag(PFLAG_PLAYING) && !hasFlag(PFLAG_SEEK) && !hasFlag(PFLAG_PAUSE))
         {
             _updateWait = true;
             if (!playback->Update())
@@ -130,7 +129,7 @@ int main()
         struct TagItem playerTags[] = {
             {NP_Entry, (IPTR)PlayerTaskFunc},
             {NP_Name, (IPTR) "Audio_Engine"},
-            {NP_Priority, 0},
+            {NP_Priority, 10},
             {NP_StackSize, 32768},
             {TAG_DONE, 0}};
 
@@ -204,9 +203,17 @@ int main()
                     {
                         struct Gadget *gad = (struct Gadget *)msg->IAddress;
                         if (gad->GadgetID == ID_PLAY)
+                        { 
                             setFlag(PFLAG_PLAYING);
+                            removeFlag(PFLAG_PAUSE);
+                        }
+                        else if (gad->GadgetID == ID_PAUSE)
+                            toggleFlag(PFLAG_PAUSE);
                         else if (gad->GadgetID == ID_STOP)
+                        {
                             setFlag(PFLAG_STOP);
+                            removeFlag(PFLAG_PAUSE);
+                        }
                         else if (gad->GadgetID == ID_OPEN)
                         {
                             //Check if flags are set

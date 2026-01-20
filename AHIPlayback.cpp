@@ -16,12 +16,12 @@ AHIPlayback::AHIPlayback(AudioStream *s)
     m_current = 0;
     m_volume = 0x10000;
     m_pause = false;
-    setAmigaFilter(true);
+    //setAmigaFilter(false);
 }
 
 AHIPlayback::~AHIPlayback()
 {
-    setAmigaFilter(false);
+    //setAmigaFilter(true);
     delete[] m_buffer[0];
     delete[] m_buffer[1];
 }
@@ -109,7 +109,6 @@ bool AHIPlayback::fillBufferFromStream(short *buf, int maxBytes, int &m_bytesRea
 {
     int samplesToRead = maxBytes / sizeof(short);
     int read = m_stream->readSamples(buf, samplesToRead);
-
     m_bytesRead = read * 2 * sizeof(short); // Stereo-Multiplikator
     return (read > 0);
 }
