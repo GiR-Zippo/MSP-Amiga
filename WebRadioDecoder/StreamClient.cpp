@@ -1,12 +1,5 @@
 #include "StreamClient.hpp"
 
-extern "C"
-{
-#include <proto/exec.h>
-#include <proto/dos.h>
-#include <proto/bsdsocket.h>
-}
-
 #define MINIMP3_IMPLEMENTATION
 #include "minimp3.h"
 
@@ -20,6 +13,7 @@ NetworkStream::NetworkStream() : m_connected(false), m_terminate(false),
     m_q = NULL;
     m_channels = 2;
     m_sampleRate =44100;
+    m_totalSamples =0;
 }
 
 /// @brief destructor
@@ -29,8 +23,7 @@ NetworkStream::~NetworkStream()
 }
 
 /// @brief opens a stream by url HTTP://mystream.org/test.mp3
-/// @param filename
-/// @return
+/// @param url
 bool NetworkStream::open(const char *filename)
 {
     if (m_connected)
@@ -55,13 +48,13 @@ bool NetworkStream::open(const char *filename)
     strncpy(m_path, fName.substr(slashPos).c_str(), 127);
 
     printf("Connection to: %s %u %s\n", m_host, m_port, m_path);
-    m_terminate = false;
-    m_bytesRead = 0;
 
     //test if we have the right URL
     if (!testConnection())
         return false;
 
+    m_terminate = false;
+    m_bytesRead = 0;
     // Create our task
     struct TagItem playerTags[] = {
         {NP_Entry, (IPTR)NetworkStream::TaskEntry},
@@ -85,6 +78,8 @@ void NetworkStream::TaskEntry()
         self->StreamLoop();
 }
 
+/// @brief test the connction and set port and url on redirect
+/// @return true if everything is okay
 bool NetworkStream::testConnection()
 {
     struct Library *SocketBase = OpenLibrary((CONST_STRPTR) "bsdsocket.library", 4);
@@ -127,23 +122,22 @@ bool NetworkStream::testConnection()
                 resState = true;
             else if (strstr(response.c_str(), "302 Found"))
             {
+                //wenn redirect, dann neue URL holen
                 size_t locPos = response.find("Location: ");
                 if (locPos != std::string::npos)
                 {
                     size_t start = locPos + 10; // Hinter "Location: "
                     size_t end = response.find("\r\n", start);
-
                     std::string newUrl = response.substr(start, end - start);
-                    printf("Redirect gefunden! Neue Adresse: %s\n", newUrl.c_str());
-
                     size_t pos = newUrl.find("://");
                     size_t slashPos = newUrl.find('/', pos + 3);
                     strncpy(m_host, newUrl.substr(pos + 3, slashPos - (pos + 3)).c_str(), 127);
                     strncpy(m_path, newUrl.substr(slashPos).c_str(), 127);
-                    printf("Connection to: %s %u %s\n", m_host, m_port, m_path);
                     resState = true;
                 }
             }
+            else if (strstr(response.c_str(), "400 Bad Request"))
+                resState = false;
         }
     }
 
@@ -219,9 +213,11 @@ void NetworkStream::StreamLoop()
                         receivedInThisCycle += res;
                         consecutiveEmpty = 0;
                     }
+                    else if(res == 0)
+                        m_terminate = true; //wir sind disconnected (wahrscheinlich)
                     else
                     {
-                        // Vielleicht mal nen Delay(0) hier in?
+                        // Vielleicht mal nen Delay(0)?
                         consecutiveEmpty++;
                     }
                 }
@@ -244,6 +240,9 @@ void NetworkStream::StreamLoop()
                             Permit();
                             if (samples > 0)
                             {
+                                Forbid();
+                                m_totalSamples += samples;
+                                Permit();
                                 // Ein kleiner "Safety Margin" (ca. 90% Lautstärke)
                                 // Damit es nicht knackst
                                 for (int i = 0; i < samples * info.channels; i++)

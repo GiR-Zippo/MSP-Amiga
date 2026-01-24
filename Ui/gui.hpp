@@ -1,7 +1,7 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include "Common.h"
+#include "../Common.h"
 
 // Gadget IDs
 #define ID_SEEKER   0

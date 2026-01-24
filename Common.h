@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 
+#include <dos/dos.h>
+#include <dos/dostags.h>
+
 #include <exec/ports.h>
 #include <exec/types.h>
 
@@ -20,7 +23,9 @@
 #include <intuition/gadgetclass.h>
 
 #include <proto/ahi.h>
+#include <proto/alib.h>
 #include <proto/asl.h>
+#include <proto/bsdsocket.h>
 #include <proto/cia.h>
 #include <proto/dos.h>
 #include <proto/exec.h>
@@ -29,7 +34,6 @@
 #include <proto/graphics.h>
 
 #include <utility/tagitem.h>
-
 
 //set OLD_GCC as -DOLD_GCC flag, when using ADE
 #ifdef OLD_GCC

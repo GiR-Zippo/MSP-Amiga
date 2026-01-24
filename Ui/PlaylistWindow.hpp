@@ -1,7 +1,7 @@
 #ifndef PLAYLISTWINDOW_HPP
 #define PLAYLISTWINDOW_HPP
 
-#include "Common.h"
+#include "../Common.h"
 
 struct SongNode
 {
@@ -32,7 +32,8 @@ public:
     int16_t HandleMessages();
     ULONG GetWinSignal() { return 1L << m_Window->UserPort->mp_SigBit; }
     bool IsOpen() { return m_opened; }
-
+    void SetUsePlaylist(bool yes) { m_playlistInUse = yes;}
+    void PlayNext();
     // Callback oder Variable für den gewählten Song
     char selectedPath[256];
     bool songSelected;
@@ -52,7 +53,7 @@ private:
     struct Gadget   *m_Gads[4];
     int32_t          m_SelectedIndex;
     bool             m_opened;
-
+    bool             m_playlistInUse;
     //DblClick
     ULONG            m_lastClickSeconds;
     ULONG            m_lastClickMicros;

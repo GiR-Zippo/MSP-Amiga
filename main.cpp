@@ -1,6 +1,6 @@
 #include "Common.h"
-#include "gui.hpp"
-#include "PlaylistWindow.hpp"
+#include "Ui/gui.hpp"
+#include "Ui/PlaylistWindow.hpp"
 #include <proto/intuition.h>
 #include <proto/gadtools.h>
 #include <proto/dos.h>
@@ -26,7 +26,6 @@ enum PlayerStates
     PFLAG_STOP = (1 << 2),      // Just stopped _playback and _stream exists
     PFLAG_SEEK = (1 << 3),      // Wir seeken
     PFLAG_PAUSE = (1 << 4)      // Pause
-
 };
 uint16_t _playerState = PFLAG_NON_INIT;
 
@@ -38,13 +37,15 @@ void clearFlags() { _playerState = 0; }
 /* ----- Playerstates End ----- */
 
 
+/* ------  the audio playback task  ------ */
 struct PlayerArgs
 {
     AudioStream *stream;
     uint16_t volumeLevel;
+    ULONG songEndMask;
+    struct Task* mainTask;
 };
 
-/* ------  the audio playback task  ------ */
 void PlayerTaskFunc()
 {
     // wart mal kurz
@@ -101,6 +102,8 @@ void PlayerTaskFunc()
                 playback->Stop();
                 pb->stream->seek(0);
                 printf("Task: Song beendet.\n");
+                //gib mal der Playlist bescheid
+                Signal(pb->mainTask, pb->songEndMask);
             }
             _updateWait = false;
         }
@@ -109,43 +112,62 @@ void PlayerTaskFunc()
     }
 
     //und weg damit
-    delete playback;
+    delete playback;    
     clearFlags();
     printf("Task: Beendet.\n");
 }
+
+struct TagItem playerTags[] = {
+    {NP_Entry, (IPTR)PlayerTaskFunc},
+    {NP_Name, (IPTR) "Audio_Engine"},
+    {NP_Priority, 10},
+    {NP_StackSize, 32768},
+    {TAG_DONE, 0}};
+/* ----  the audio playback task end ----- */
+
+
+AudioStream *_stream = NULL;
+MainUi *_mainUi = NULL;
+PlaylistWindow *_playlist = NULL;
+struct Process *playerProc;
+
 
 /* -------------------------------------------------------------------------- */
 /* main routine                                                               */
 /* -------------------------------------------------------------------------- */
 int main()
 {
-    AudioStream *_stream = NULL;
-    MainUi *_mainUi = new MainUi();
-    PlaylistWindow *_playlist = new PlaylistWindow();
+    _mainUi = new MainUi();
+    _playlist = new PlaylistWindow();
 
     if (_mainUi->SetupGUI())
     {
         bool running = true;
-        struct IntuiMessage *msg;
         _playerState = PFLAG_NON_INIT;
-        struct Process *playerProc;
-    
-        struct TagItem playerTags[] = {
-            {NP_Entry, (IPTR)PlayerTaskFunc},
-            {NP_Name, (IPTR) "Audio_Engine"},
-            {NP_Priority, 10},
-            {NP_StackSize, 32768},
-            {TAG_DONE, 0}};
+        struct IntuiMessage *msg;
 
+        int songEndSignal = AllocSignal(-1); // -1 sucht das nächste freie Bit
+        if (songEndSignal == -1) { printf("Sig Err\n"); }
+        ULONG songEndMask = (1L << songEndSignal);
         ULONG windowSig = _mainUi->GetWinSignal();
         ULONG pWindowSig = _playlist->GetWinSignal();
+
         while (running)
         {
-            ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C);
-            if (signals & pWindowSig)
+            ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | songEndMask);
+            
+            if ((signals & pWindowSig) || (signals & songEndMask))
             {
                 int16_t response = _playlist->HandleMessages();
-                if (response == 0)
+                //Spiel unser Lied
+                if (signals & songEndMask && response == -1)
+                {
+                    printf("Signal empfangen: Song zu Ende!\n");
+                    _playlist->PlayNext();
+                    response = 0;
+                }
+
+                if (response == 0) // 0 == neuer Track ausgewählt
                 {
                     //Check if flags are set
                     if(_playerState != PFLAG_NON_INIT)
@@ -154,13 +176,12 @@ int main()
                         removeFlag(PFLAG_INIT_DONE);
                         // wait for our task to be closed
                         while (!_playerState == PFLAG_NON_INIT)
-                            Delay(2);
+                            Delay(5);
                         // remove stream only, task removed the audio
                         if (_stream)
                             delete _stream;
                         _stream = NULL;
                     }
-
                     std::string file = _playlist->selectedPath;
                     if (!file.empty())
                     {
@@ -182,6 +203,8 @@ int main()
                             // prepare audio task and start audio task
                             PlayerArgs g_args;
                             g_args.stream = _stream;
+                            g_args.songEndMask = songEndMask;
+                            g_args.mainTask = FindTask(NULL);
                             playerProc = (struct Process *)CreateNewProc(playerTags);
                             if (playerProc)
                                 playerProc->pr_Task.tc_UserData = (APTR)&g_args;
@@ -211,9 +234,12 @@ int main()
                             if (hasFlag(PFLAG_PLAYING) && !hasFlag(PFLAG_SEEK))
                             {
                                 if (_stream->getCurrentSeconds() == 0 ||  _stream->getDuration() == 0)
-                                    break;
-                                _mainUi->UpdateTimeDisplay(_stream->getCurrentSeconds(), _stream->getDuration());
-                                _mainUi->UpdateSeeker((int)((_stream->getCurrentSeconds() * 100) / _stream->getDuration()));
+                                    _mainUi->UpdateTimeDisplay(_stream->getCurrentSeconds(), _stream->getDuration()); 
+                                else
+                                {
+                                    _mainUi->UpdateTimeDisplay(_stream->getCurrentSeconds(), _stream->getDuration());
+                                    _mainUi->UpdateSeeker((int)((_stream->getCurrentSeconds() * 100) / _stream->getDuration()));
+                                }
                             }
                         }
                     }
@@ -275,6 +301,8 @@ int main()
                         }
                         else if (gad->GadgetID == ID_OPEN)
                         {
+                            //keine playlist mehr
+                            _playlist->SetUsePlaylist(false);
                             //Check if flags are set
                             if(_playerState != PFLAG_NON_INIT)
                             {
@@ -308,11 +336,15 @@ int main()
                                     // prepare audio task and start audio task
                                     PlayerArgs g_args;
                                     g_args.stream = _stream;
+                                    g_args.songEndMask = songEndMask;
+                                    g_args.mainTask = FindTask(NULL);
                                     playerProc = (struct Process *)CreateNewProc(playerTags);
                                     if (playerProc)
                                         playerProc->pr_Task.tc_UserData = (APTR)&g_args;
                                     //tell the audio to start
                                     setFlag(PFLAG_INIT_DONE);
+                                    setFlag(PFLAG_PLAYING);
+                                    removeFlag(PFLAG_PAUSE);
                                 }
                             }
                         }

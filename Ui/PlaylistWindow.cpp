@@ -1,6 +1,5 @@
 #include "PlaylistWindow.hpp"
-#include <proto/alib.h>
-#include <proto/intuition.h>
+
 
 static struct TagItem buttonTags[] = {
     {GTTX_Border, TRUE}, {TAG_DONE, 0}};
@@ -17,6 +16,7 @@ PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
     NewList(&m_SongList); // Exec-Liste initialisieren
     songSelected = false;
     m_opened = false;
+    m_playlistInUse = false;
     m_SelectedIndex = -1;
     m_lastClickSeconds = 0;
     m_lastClickMicros = 0;
@@ -195,7 +195,8 @@ int16_t PlaylistWindow::HandleMessages()
             {
                 Node *n = findNode(selectedIndex);
                 if (!n)
-                    return 0;
+                    return -1;
+                SetUsePlaylist(true);
                 m_SelectedIndex = selectedIndex;
                 SongNode *sn = (SongNode *)n;
                 strncpy(selectedPath, sn->path, 255);
@@ -236,6 +237,38 @@ int16_t PlaylistWindow::HandleMessages()
         }
     }
     return -1;
+}
+
+void PlaylistWindow::PlayNext()
+{
+    if(!m_playlistInUse)
+        return;
+
+    int count = 0;
+    struct Node *node;
+    // Wir starten beim Kopf und wandern bis zum Ende (NULL)
+    for (node = m_SongList.lh_Head; node->ln_Succ; node = node->ln_Succ)
+        count++;
+
+    if (m_SelectedIndex > count)
+        m_SelectedIndex = 0;
+    else
+        m_SelectedIndex++;
+
+    node = findNode(m_SelectedIndex);
+    if (!node)
+        return;
+
+    SongNode *sn = (SongNode *)node;
+    strncpy(selectedPath, sn->path, 255);
+
+    if (m_Window && m_Gads[0])
+    {
+        GT_SetGadgetAttrs(m_Gads[0], m_Window, NULL,
+                          GTLV_Labels, (IPTR)&m_SongList,
+                          GTLV_ShowSelected, (long unsigned int)m_SelectedIndex,
+                          TAG_DONE);
+    }
 }
 
 std::string PlaylistWindow::openFileRequest()

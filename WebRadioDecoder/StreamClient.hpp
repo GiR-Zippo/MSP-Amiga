@@ -2,9 +2,6 @@
 #define NETWORKSTREAM_HPP
 
 #include "Common.h"
-#include <exec/types.h>
-#include <dos/dos.h>
-#include <dos/dostags.h>
 #include "../Shared/AudioQueue.hpp"
 #include "AudioStream.hpp"
 
@@ -17,8 +14,16 @@ class NetworkStream : public AudioStream
         bool     open(const char* filename);
         bool     seek(uint32_t targetSeconds) {return false;}
         bool     seekRelative(int32_t targetSeconds) {return false;}
-        uint32_t getCurrentSeconds() const {return 0;}
-        uint32_t getDuration() const {return 200;}
+        uint32_t getCurrentSeconds() const 
+        {
+            Forbid();
+            uint32_t rate = m_sampleRate;
+            uint64_t samples = m_totalSamples;
+            Permit();
+
+            return (uint32_t)(samples / rate);
+        }
+        uint32_t getDuration() const {return 0;}
         uint32_t getSampleRate() const 
         {
             Forbid();
@@ -40,6 +45,12 @@ class NetworkStream : public AudioStream
 
         int readSamples(short *buffer, int samplesToRead)
         {
+            //wenn der Stream terminiert ist, dann stoppen wir auch das audio
+            //einfach 0 zurück und weg isser
+            if (m_terminate)
+                return 0;
+
+            //sind noch nicht soweit, also sound of silence
             if (m_q == NULL)
             {
                 memset(buffer, 0, (samplesToRead) * sizeof(short));
@@ -47,6 +58,7 @@ class NetworkStream : public AudioStream
             }
 
             unsigned int read = m_q->get(buffer, samplesToRead);
+            //mit 0 auffüllen, für den Fall der Faelle
             if (read < (unsigned int)samplesToRead)
                 memset(buffer + read, 0, (samplesToRead - read) * sizeof(short));
             return samplesToRead / 2;
