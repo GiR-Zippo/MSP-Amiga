@@ -1,6 +1,23 @@
 # My Shitty Player
 just a test how to NOT build a audioplayer for an Amiga
 
+## Formats supported:
+M4A, ACC, FLAC, OGG/Vorbis, MP123
+
+
+## Requires:
+
+### System:
+- OS3.1.x
+- AHI (uses device_0 @44100kHz)
+- bsdsocket.library (only when webstreams are used)
+
+### CPU:
+- 68040 + FPU (no idea what's the lowest spec)
+- VampireV2
+- Emu68
+
+
 ## Compiling:
 If you are using beppos crosscompiler set USE_ADE = 0 in MakeFile
 
