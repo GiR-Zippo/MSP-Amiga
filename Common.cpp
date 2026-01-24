@@ -1,5 +1,16 @@
 #include "Common.h"
 
+void stringToLower(std::string& s)
+{
+    for (size_t i = 0; i < s.length(); i++) {
+        // Wenn das Zeichen zwischen 'A' und 'Z' liegt
+        if (s[i] >= 'A' && s[i] <= 'Z') {
+            // Addiere 32, um zum Kleinbuchstaben zu kommen
+            s[i] = s[i] + 32;
+        }
+    }
+}
+
 //Bleibt so, dann compiled es
 size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps) {
     (void)ps; // Status wird am Amiga nicht benötigt

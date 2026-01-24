@@ -4,15 +4,16 @@
 #include "Common.h"
 
 // Gadget IDs
-#define ID_SEEKER 0
-#define ID_VOLUME 1
+#define ID_SEEKER   0
+#define ID_VOLUME   1
 
-#define ID_PLAY   2
-#define ID_PAUSE  3
-#define ID_STOP   4
-#define ID_OPEN   5
-#define ID_TIME_DISPLAY 6
-#define PLAYER_GADS_COUNT 7
+#define ID_PLAY     2
+#define ID_PAUSE    3
+#define ID_STOP     4
+#define ID_OPEN     5
+#define ID_PLAYLIST 6
+#define ID_TIME_DISPLAY 7
+#define PLAYER_GADS_COUNT 8
 
 struct PlayerGadgetDef {
     uint32_t kind;

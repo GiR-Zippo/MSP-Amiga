@@ -21,10 +21,11 @@ static struct PlayerGadgetDef playerGadgets[] = {
     // Kind         X    Y    W    H    Label    ID               Tags
     { SLIDER_KIND,  20, 142, 260, 12,   "",      ID_SEEKER,       seekerTags },
     { SLIDER_KIND, 285,  30,  10, 124,  "",      ID_VOLUME,       volTags },
-    { BUTTON_KIND,  20, 160,  60,  20,  "Play",  ID_PLAY,         buttonTags },
-    { BUTTON_KIND,  87, 160,  60,  20,  "Pause", ID_PAUSE,        buttonTags },
-    { BUTTON_KIND, 153, 160,  60,  20,  "Stop",  ID_STOP,         buttonTags },
-    { BUTTON_KIND, 218, 160,  60,  20,  "Open",  ID_OPEN,         buttonTags },
+    { BUTTON_KIND,  20, 160,  50,  20,  "Play",  ID_PLAY,         buttonTags },
+    { BUTTON_KIND,  70, 160,  50,  20,  "Pause", ID_PAUSE,        buttonTags },
+    { BUTTON_KIND, 120, 160,  50,  20,  "Stop",  ID_STOP,         buttonTags },
+    { BUTTON_KIND, 170, 160,  50,  20,  "Open",  ID_OPEN,         buttonTags },
+    { BUTTON_KIND, 227, 160,  50,  20,  "PList", ID_PLAYLIST,     buttonTags },
     { TEXT_KIND,    20, 125, 260, 14,   "",      ID_TIME_DISPLAY, timeTags }
 };
 

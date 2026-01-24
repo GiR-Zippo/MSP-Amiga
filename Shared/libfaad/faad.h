@@ -301,6 +301,7 @@ dr_aac *dr_aac_open_m4a(const char *filename)
     NeAACDecConfigurationPtr config = NeAACDecGetCurrentConfiguration(pAac->handle);
     config->outputFormat = FAAD_FMT_16BIT; // Wir arbeiten mit 16Bit
     config->downMatrix = 1;                // und das soll so bleiben
+    //config->dontUpSampleImplicitSBR = 0;
     NeAACDecSetConfiguration(pAac->handle, config);
 
     if (NeAACDecInit2(pAac->handle, pAac->m4aframe.asc, 2, &sr, &ch) < 0)

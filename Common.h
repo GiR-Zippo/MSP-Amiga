@@ -46,6 +46,7 @@ typedef unsigned long long uint64_t;
 //The wchar stuff we need
 typedef int mbstate_t;
 typedef unsigned short wchar_t;
+
 #else
 #include <cwchar> 
 #include <stdint.h>
@@ -60,4 +61,5 @@ extern "C"
     size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps) __attribute__((weak));
     size_t wcslen(const wchar_t* s) __attribute__((weak));
 }   
+void stringToLower(std::string& s);
 #endif

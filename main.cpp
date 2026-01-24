@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "gui.hpp"
+#include "PlaylistWindow.hpp"
 #include <proto/intuition.h>
 #include <proto/gadtools.h>
 #include <proto/dos.h>
@@ -13,6 +14,7 @@
 #include "MP3Decoder/MP3Stream.hpp"
 #include "VorbisDecoder/VorbisStream.hpp"
 #include "M4ADecoder/M4ADecoder.hpp"
+#include "WebRadioDecoder/StreamClient.hpp"
 #include <cstring>
 
 /* ------  Playerstates  ------ */
@@ -119,13 +121,15 @@ int main()
 {
     AudioStream *_stream = NULL;
     MainUi *_mainUi = new MainUi();
+    PlaylistWindow *_playlist = new PlaylistWindow();
+
     if (_mainUi->SetupGUI())
     {
         bool running = true;
         struct IntuiMessage *msg;
         _playerState = PFLAG_NON_INIT;
         struct Process *playerProc;
-
+    
         struct TagItem playerTags[] = {
             {NP_Entry, (IPTR)PlayerTaskFunc},
             {NP_Name, (IPTR) "Audio_Engine"},
@@ -134,9 +138,62 @@ int main()
             {TAG_DONE, 0}};
 
         ULONG windowSig = _mainUi->GetWinSignal();
+        ULONG pWindowSig = _playlist->GetWinSignal();
         while (running)
         {
-            ULONG signals = Wait(windowSig | SIGBREAKF_CTRL_C);
+            ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C);
+            if (signals & pWindowSig)
+            {
+                int16_t response = _playlist->HandleMessages();
+                if (response == 0)
+                {
+                    //Check if flags are set
+                    if(_playerState != PFLAG_NON_INIT)
+                    {
+                        setFlag(PFLAG_STOP);
+                        removeFlag(PFLAG_INIT_DONE);
+                        // wait for our task to be closed
+                        while (!_playerState == PFLAG_NON_INIT)
+                            Delay(2);
+                        // remove stream only, task removed the audio
+                        if (_stream)
+                            delete _stream;
+                        _stream = NULL;
+                    }
+
+                    std::string file = _playlist->selectedPath;
+                    if (!file.empty())
+                    {
+                        if (strstr(file.c_str(), "http://"))
+                            _stream = new NetworkStream();
+                        else if (strstr(file.c_str(), ".mp3"))
+                            _stream = new MP3Stream();
+                        else if (strstr(file.c_str(), ".flac"))
+                            _stream = new FlacStream();
+                        else if (strstr(file.c_str(), ".aac"))
+                            _stream = new AACStream();
+                        else if (strstr(file.c_str(), ".ogg"))
+                            _stream = new VorbisStream();
+                        else if (strstr(file.c_str(), ".m4a"))
+                            _stream = new M4AStream();
+
+                        if (_stream->open(file.c_str()))
+                        {
+                            // prepare audio task and start audio task
+                            PlayerArgs g_args;
+                            g_args.stream = _stream;
+                            playerProc = (struct Process *)CreateNewProc(playerTags);
+                            if (playerProc)
+                                playerProc->pr_Task.tc_UserData = (APTR)&g_args;
+                            // tell the audio to start
+                            setFlag(PFLAG_INIT_DONE);
+                            setFlag(PFLAG_PLAYING);
+                            removeFlag(PFLAG_PAUSE);
+                        }
+                    }
+                }
+            }
+
             if (signals & windowSig)
             {
                 while ((msg = GT_GetIMsg(_mainUi->GetWindow()->UserPort)))
@@ -153,6 +210,8 @@ int main()
                         {
                             if (hasFlag(PFLAG_PLAYING) && !hasFlag(PFLAG_SEEK))
                             {
+                                if (_stream->getCurrentSeconds() == 0 ||  _stream->getDuration() == 0)
+                                    break;
                                 _mainUi->UpdateTimeDisplay(_stream->getCurrentSeconds(), _stream->getDuration());
                                 _mainUi->UpdateSeeker((int)((_stream->getCurrentSeconds() * 100) / _stream->getDuration()));
                             }
@@ -224,7 +283,7 @@ int main()
                                 //wait for our task to be closed
                                 while (!_playerState == PFLAG_NON_INIT)
                                     Delay(2);
-                                //remove stream only, task removed the audio
+                                //remove stream only, task removes the audio
                                 if (_stream)
                                     delete _stream;
                                 _stream = NULL;
@@ -257,11 +316,25 @@ int main()
                                 }
                             }
                         }
+                        else if (gad->GadgetID == ID_PLAYLIST)
+                        {
+                            if(_playlist->IsOpen())
+                                _playlist->close();
+                            else
+                            {
+                                _playlist->open();
+                                pWindowSig = _playlist->GetWinSignal();
+                            }
+                        }
                     }
                 }
             }
         }
+
         // Schluss jetzt
+        if (_playlist)
+            delete _playlist;
+        
         _mainUi->CleanupGUI();
         delete _mainUi;
         printf("Cleabup\n");
