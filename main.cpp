@@ -131,7 +131,6 @@ MainUi *_mainUi = NULL;
 PlaylistWindow *_playlist = NULL;
 struct Process *playerProc;
 
-
 /* -------------------------------------------------------------------------- */
 /* main routine                                                               */
 /* -------------------------------------------------------------------------- */
@@ -187,6 +186,8 @@ int main()
                     {
                         if (strstr(file.c_str(), "http://"))
                             _stream = new NetworkStream();
+                        else if (strstr(file.c_str(), "https://"))
+                            _stream = new NetworkStream();
                         else if (strstr(file.c_str(), ".mp3"))
                             _stream = new MP3Stream();
                         else if (strstr(file.c_str(), ".flac"))
@@ -198,7 +199,7 @@ int main()
                         else if (strstr(file.c_str(), ".m4a"))
                             _stream = new M4AStream();
 
-                        if (_stream->open(file.c_str()))
+                        if (_stream != NULL && _stream->open(file.c_str()))
                         {
                             // prepare audio task and start audio task
                             PlayerArgs g_args;
@@ -331,7 +332,7 @@ int main()
                                 else if (strstr(file.c_str(), ".m4a"))
                                     _stream = new M4AStream();
 
-                                if (_stream->open(file.c_str()))
+                                if (_stream != NULL && _stream->open(file.c_str()))
                                 {
                                     // prepare audio task and start audio task
                                     PlayerArgs g_args;
@@ -363,6 +364,7 @@ int main()
             }
         }
 
+        FreeSignal(songEndSignal);
         // Schluss jetzt
         if (_playlist)
             delete _playlist;
