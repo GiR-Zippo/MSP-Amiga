@@ -54,6 +54,8 @@ private:
     int32_t          m_SelectedIndex;
     bool             m_opened;
     bool             m_playlistInUse;
+    uint8_t          m_playlistMode;
+
     //DblClick
     ULONG            m_lastClickSeconds;
     ULONG            m_lastClickMicros;

@@ -4,6 +4,7 @@ just a test how to NOT build a audioplayer for an Amiga
 ## Formats supported:
 M4A, ACC, FLAC, OGG/Vorbis, MP123
 
+WebStreams: HTTP/HTTPS MP3 only
 
 ## Requires:
 
@@ -28,7 +29,7 @@ You can also compile via ADE native on your Amiga set USE_ADE = 1 in MakeFile
 Be awe this will take some time, grab a coffee and compile
 
 ## ADE
-if you are using ADE and the old gcc2.9 you might need the patched ahi.h proto and a patched bsdsocket.h
+if you are using ADE and the old gcc2.9 you might need the patched ahi.h proto, a patched bsdsocket.h and AmiSSL headers.
 
 ## Uses:
 [MiniMP3](https://github.com/lieff/minimp3)
@@ -39,3 +40,4 @@ if you are using ADE and the old gcc2.9 you might need the patched ahi.h proto a
 
 [FAAD](https://aminet.net/package/mus/edit/faad2)
 
+[AmiSSL](https://github.com/jens-maus/amissl)

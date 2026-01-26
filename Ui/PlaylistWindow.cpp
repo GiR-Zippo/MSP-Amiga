@@ -30,6 +30,7 @@ PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
     songSelected = false;
     m_opened = false;
     m_playlistInUse = false;
+    m_playlistMode = 0; // 0 = PlaylistMode
     m_SelectedIndex = -1;
     m_lastClickSeconds = 0;
     m_lastClickMicros = 0;
@@ -110,7 +111,7 @@ bool PlaylistWindow::open()
         {
             m_Gads[i] = CreateGadget(CYCLE_KIND, context, &ng,
             GTCY_Labels, (Tag)playlistModi,
-            GTCY_Active, 0, // Welcher Eintrag ist am Anfang aktiv?
+            GTCY_Active, m_playlistMode, // Welcher Eintrag ist am Anfang aktiv?
             TAG_DONE);
         }
         else
@@ -215,6 +216,7 @@ int16_t PlaylistWindow::HandleMessages()
             printf("Suche jetzt nach: %s\n", playlistModi[code]);
             GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
             clearList();
+            m_playlistMode = code;
             if (code == 1)
             {
                 Icecast* _icecast = new Icecast();
