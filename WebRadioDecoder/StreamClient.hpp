@@ -38,7 +38,6 @@ class NetworkStream : public AudioStream
             Permit();
             return currentChannels;
         }
-        void CloseStream();
 
         bool IsConnected() const { return m_connected; }
         uint32_t GetBytesRead() const { return m_bytesRead; }
@@ -65,24 +64,29 @@ class NetworkStream : public AudioStream
         }
 
     private:
-        static void TaskEntry(); // Der Amiga-Prozess-Einstieg
+        static void taskEntry(); // Der Amiga-Prozess-Einstieg
         void StreamLoop();       // Die Netzwerk-Logik
+
+        void closeStream();
+        void decodeUrlData(std::string url);
         bool testConnection();
+        bool handleServerResponse(std::string response);
 
-        uint32_t       m_sampleRate;
-        unsigned char  m_channels;
-        uint64_t       m_totalSamples;
+        uint32_t        m_sampleRate;
+        unsigned char   m_channels;
+        uint64_t        m_totalSamples;
 
-        int    m_socket;
-        char   m_host[128];
-        char   m_path[128];
-        uint16_t m_port;
+        int             m_socket;
+        char            m_host[128];
+        char            m_path[128];
+        uint16_t        m_port;
+        bool            m_isHTTP;
 
         volatile bool   m_connected;
         volatile bool   m_terminate;
         volatile uint32_t m_bytesRead;
         struct Process* m_workerProc;
-        AudioQueue* m_q;
+        AudioQueue*     m_q;
 };
 
 #endif

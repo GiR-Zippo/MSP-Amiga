@@ -51,6 +51,8 @@ typedef unsigned long long uint64_t;
 typedef int mbstate_t;
 typedef unsigned short wchar_t;
 
+typedef unsigned long uintptr_t;
+
 #else
 #include <cwchar> 
 #include <stdint.h>
