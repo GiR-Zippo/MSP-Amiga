@@ -1,4 +1,5 @@
 #include "Common.h"
+#include "Shared/AmiSSL.hpp"
 #include "Ui/gui.hpp"
 #include "Ui/PlaylistWindow.hpp"
 #include <proto/intuition.h>
@@ -136,6 +137,14 @@ struct Process *playerProc;
 /* -------------------------------------------------------------------------- */
 int main()
 {
+    //Gott weiß was AmiSSL macht, aber fummelt am Stack rum
+    //Also einmalig Init hier
+    AmiSSL *ssl = new AmiSSL();
+    ssl->Init();
+    ssl->Cleanup();
+    delete ssl;
+
+    //Nun die Ui
     _mainUi = new MainUi();
     _playlist = new PlaylistWindow();
 

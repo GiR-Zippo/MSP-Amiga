@@ -120,13 +120,28 @@ void NetworkStream::StreamLoop()
     else
         send(m_socket, request, strlen(request), 0);
 
+    // Freien Speicher prüfen (FastRAM bevorzugt)
+    uint32_t freeMem = AvailMem(MEMF_FAST);
+    if (freeMem < 500000) freeMem = AvailMem(MEMF_ANY); // Notfall: ChipRAM nehmen
+
+    // RAW_BUF_SIZE berechnen (zwischen 16KB und 64KB)
+    int RAW_BUF_SIZE = 65536;
+    if (freeMem < 1000000) RAW_BUF_SIZE = 32768;
+    if (freeMem < 500000)  RAW_BUF_SIZE = 16384;
+
+    // AudioQueue-Größe anpassen (ca. 1 Sekunde Pufferung)
+    // 176400 Bytes sind ca. 1 Sekunde bei 44.1kHz Stereo 16-Bit
+    int queueSize = 176400;
+    if (freeMem < 1000000) queueSize = 88200;  // 0.5 Sek
+    if (freeMem < 500000)  queueSize = 44100;  // 0.25 Sek (Riskant bei Multitasking!)
+
     // Puffer für die rohen MP3-Daten vom Socket
-    const int RAW_BUF_SIZE = 65536;
-    unsigned char *rawBuffer = (unsigned char *)AllocVec(RAW_BUF_SIZE, MEMF_ANY);
-    int currentDataInRaw = 0;
+    unsigned char *rawBuffer = (unsigned char *)AllocVec(RAW_BUF_SIZE, MEMF_ANY | MEMF_CLEAR);
 
     // der PCMBuffer für AHI
-    m_q = new AudioQueue(176400);
+    m_q = new AudioQueue(queueSize);
+    
+    int currentDataInRaw = 0;
 
     mp3dec_t mp3d;
     mp3dec_init(&mp3d);
@@ -255,19 +270,28 @@ void NetworkStream::decodeUrlData(std::string url)
         m_port = 443;
     }
 
-    // set url and file-dest
-    size_t pos = 3 + url.find("://"); // jap +3
-    size_t portSep = url.find(':', pos) + 1;
-    size_t slashPos = url.find('/', pos);
-    // wenn ein Port angegeben ist, Port setzen
-    if (portSep > 0)
-    {
-        m_port = atoi(url.substr(portSep, slashPos - portSep).c_str());
-        strncpy(m_host, url.substr(pos, (portSep - 1) - pos).c_str(), 127);
-    }
+    size_t pos = url.find("://");
+    size_t hostStart = pos + 3;
+    size_t slashPos = url.find('/', hostStart);
+    size_t portSep  = url.find(':', hostStart);
+    size_t hostEnd = (slashPos != std::string::npos) ? slashPos : url.length();
+
+    // 3. Port extrahieren (nur wenn ':' VOR dem ersten '/' kommt)
+    if (portSep != std::string::npos && (slashPos == std::string::npos || portSep < slashPos)) {
+        // Port vorhanden
+        std::string portStr = url.substr(portSep + 1, hostEnd - portSep - 1);
+        m_port = atoi(portStr.c_str());
+        strncpy(m_host,url.substr(hostStart, portSep - hostStart).c_str(),127);
+    } 
+    else 
+        // Kein Port im String -> Standardport (hast du oben ja schon gesetzt)
+        strncpy(m_host,url.substr(hostStart, hostEnd - hostStart).c_str(),127);
+    
+
+    if (slashPos != std::string::npos)
+        strncpy(m_path, url.substr(slashPos).c_str(), 127);
     else
-        strncpy(m_host, url.substr(pos, slashPos - pos).c_str(), 127);
-    strncpy(m_path, url.substr(slashPos).c_str(), 127);
+        strncpy(m_path, "/", 127);
 
     printf("Connection to: %s %u %s\n", m_host, m_port, m_path);
 }
@@ -343,7 +367,20 @@ bool NetworkStream::testConnection()
 bool NetworkStream::handleServerResponse(std::string response)
 {
     if (strstr(response.c_str(), "200 OK"))
-        return true;
+    {
+        // Pseudocode für den Header-Check
+        if (strstr(response.c_str(), "Content-Type: audio/mpeg"))
+        {
+            // Es ist MP3
+            return true;
+        } else if (strstr(response.c_str(), "Content-Type: audio/aac") || 
+                strstr(response.c_str(), "Content-Type: audio/aacp") ||
+                strstr(response.c_str(), "Content-Type: audio/mp4")) {
+            // Es ist AAC / AAC+
+            return true;
+        }
+        return false;
+    }
     else if (strstr(response.c_str(), "302 Found"))
     {
         // wenn redirect, dann neue URL holen

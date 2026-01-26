@@ -22,7 +22,7 @@
 #include <libraries/amisslmaster.h>
 #include <libraries/amissl.h>
 
-const char stack_size[] = "$STACK:8192";
+const char stack_size[] = "$STACK:102400";
 
 #define FFlush(x) Flush(x)
 #define XMKSTR(x) #x
