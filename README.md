@@ -12,6 +12,7 @@ WebStreams: HTTP/HTTPS MP3 and AAC+ only
 - OS3.1.x
 - AHI (uses device_0 @44100kHz)
 - bsdsocket.library (only when webstreams are used)
+- AmiSSL for HTTPS
 
 ### CPU:
 - 68040 + FPU (no idea what's the lowest spec)
