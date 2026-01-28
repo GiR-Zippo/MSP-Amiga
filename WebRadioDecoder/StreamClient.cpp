@@ -4,6 +4,7 @@
 #include "minimp3.h"
 
 #include "../Shared/AmiSSL.hpp"
+#include "../AACDecoder/AACStream.hpp"
 
 /// @brief constructor
 NetworkStream::NetworkStream() : m_connected(false), m_terminate(false),
@@ -28,10 +29,13 @@ NetworkStream::~NetworkStream()
 bool NetworkStream::open(const char *filename)
 {
     if (m_connected)
+    {
+        printf("Still connected\n");
         return false;
+    }
 
     std::string fName = filename;
-    //decode URL and set up port, host, ...
+    // decode URL and set up port, host, ...
     decodeUrlData(fName);
 
     // test if we have the right URL
@@ -66,10 +70,15 @@ void NetworkStream::taskEntry()
 /// @brief the Streamloop, handling the network and decoding
 void NetworkStream::StreamLoop()
 {
+    if (m_codec == 1)
+    {
+        StreamLoopAAC();
+        return;
+    }
     struct Library *SocketBase = NULL;
     AmiSSL *sslWrap = NULL;
 
-    //ein wenig Vorbereitung: Socket öffnen und so
+    // ein wenig Vorbereitung: Socket öffnen und so
     if (!m_isHTTP)
     {
         sslWrap = new AmiSSL();
@@ -112,7 +121,7 @@ void NetworkStream::StreamLoop()
     }
 
     m_connected = true;
-    //Request senden
+    // Request senden
     char request[256];
     sprintf(request, "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Amiga\r\nConnection: close\r\n\r\n", m_path, m_host);
     if (sslWrap)
@@ -122,25 +131,30 @@ void NetworkStream::StreamLoop()
 
     // Freien Speicher prüfen (FastRAM bevorzugt)
     uint32_t freeMem = AvailMem(MEMF_FAST);
-    if (freeMem < 500000) freeMem = AvailMem(MEMF_ANY); // Notfall: ChipRAM nehmen
+    if (freeMem < 500000)
+        freeMem = AvailMem(MEMF_ANY); // Notfall: ChipRAM nehmen
 
     // RAW_BUF_SIZE berechnen (zwischen 16KB und 64KB)
     int RAW_BUF_SIZE = 65536;
-    if (freeMem < 1000000) RAW_BUF_SIZE = 32768;
-    if (freeMem < 500000)  RAW_BUF_SIZE = 16384;
+    if (freeMem < 1000000)
+        RAW_BUF_SIZE = 32768;
+    if (freeMem < 500000)
+        RAW_BUF_SIZE = 16384;
 
     // AudioQueue-Größe anpassen (ca. 1 Sekunde Pufferung)
     // 176400 Bytes sind ca. 1 Sekunde bei 44.1kHz Stereo 16-Bit
     int queueSize = 176400;
-    if (freeMem < 1000000) queueSize = 88200;  // 0.5 Sek
-    if (freeMem < 500000)  queueSize = 44100;  // 0.25 Sek (Riskant bei Multitasking!)
+    if (freeMem < 1000000)
+        queueSize = 88200; // 0.5 Sek
+    if (freeMem < 500000)
+        queueSize = 44100; // 0.25 Sek (Riskant bei Multitasking!)
 
     // Puffer für die rohen MP3-Daten vom Socket
     unsigned char *rawBuffer = (unsigned char *)AllocVec(RAW_BUF_SIZE, MEMF_ANY | MEMF_CLEAR);
 
     // der PCMBuffer für AHI
     m_q = new AudioQueue(queueSize);
-    
+
     int currentDataInRaw = 0;
 
     mp3dec_t mp3d;
@@ -157,7 +171,7 @@ void NetworkStream::StreamLoop()
         int receivedInThisCycle = 0;
         int consecutiveEmpty = 0;
 
-        //read buffer
+        // read buffer
         while (currentDataInRaw < (RAW_BUF_SIZE - 2048) && consecutiveEmpty < 5)
         {
             long res;
@@ -222,8 +236,206 @@ void NetworkStream::StreamLoop()
         Delay(receivedInThisCycle == 0 ? 1 : 0);
     }
 
-    //Cleanup
-    // Wir habens erstellt, also bauen wirs auch ab
+    // Cleanup
+    //  Wir habens erstellt, also bauen wirs auch ab
+    delete m_q;
+    FreeVec(rawBuffer);
+    if (sslWrap)
+    {
+        sslWrap->CleanupAll();
+        delete sslWrap;
+    }
+    else
+    {
+        if (m_socket != -1)
+            CloseSocket(m_socket);
+        if (SocketBase)
+            CloseLibrary(SocketBase);
+    }
+    m_socket = -1;
+    m_connected = false;
+}
+
+/// @brief the Streamloop, handling the network and decoding
+void NetworkStream::StreamLoopAAC()
+{
+    printf("AAC\n");
+    struct Library *SocketBase = NULL;
+    AmiSSL *sslWrap = NULL;
+
+    // ein wenig Vorbereitung: Socket öffnen und so
+    if (!m_isHTTP)
+    {
+        sslWrap = new AmiSSL();
+        if (!sslWrap->Init() || !sslWrap->OpenConnection(m_host, m_port))
+        {
+            delete sslWrap;
+            return;
+        }
+    }
+    else
+    {
+        SocketBase = OpenLibrary((CONST_STRPTR) "bsdsocket.library", 4);
+        if (!SocketBase)
+            return;
+
+        struct hostent *he = gethostbyname(m_host);
+        struct sockaddr addr;
+        m_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+        if (m_socket == -1 || !he)
+        {
+            if (m_socket != -1)
+                CloseSocket(m_socket);
+            CloseLibrary(SocketBase);
+            return;
+        }
+
+        memset(&addr, 0, sizeof(addr));
+        addr.sa_family = AF_INET;
+        uint16_t net_port = htons(m_port);
+        memcpy(&addr.sa_data[0], &net_port, 2);
+        memcpy(&addr.sa_data[2], he->h_addr, 4);
+
+        if (connect(m_socket, &addr, sizeof(addr)) != 0)
+        {
+            CloseSocket(m_socket);
+            CloseLibrary(SocketBase);
+            return;
+        }
+    }
+
+    m_connected = true;
+    // Request senden
+    char request[256];
+    sprintf(request, "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Amiga\r\nConnection: close\r\n\r\n", m_path, m_host);
+    if (sslWrap)
+        SSL_write(sslWrap->GetSSL(), request, strlen(request));
+    else
+        send(m_socket, request, strlen(request), 0);
+
+    // Freien Speicher prüfen (FastRAM bevorzugt)
+    uint32_t freeMem = AvailMem(MEMF_FAST);
+    if (freeMem < 500000)
+        freeMem = AvailMem(MEMF_ANY); // Notfall: ChipRAM nehmen
+
+    // RAW_BUF_SIZE berechnen (zwischen 16KB und 64KB)
+    int RAW_BUF_SIZE = 65536;
+    if (freeMem < 1000000)
+        RAW_BUF_SIZE = 32768;
+    if (freeMem < 500000)
+        RAW_BUF_SIZE = 16384;
+
+    // AudioQueue-Größe anpassen (ca. 1 Sekunde Pufferung)
+    // 176400 Bytes sind ca. 1 Sekunde bei 44.1kHz Stereo 16-Bit
+    int queueSize = 176400;
+    if (freeMem < 1000000)
+        queueSize = 88200; // 0.5 Sek
+    if (freeMem < 500000)
+        queueSize = 44100; // 0.25 Sek (Riskant bei Multitasking!)
+
+    // Puffer für die rohen AAC-Daten vom Socket
+    unsigned char *rawBuffer = (unsigned char *)AllocVec(RAW_BUF_SIZE, MEMF_ANY | MEMF_CLEAR);
+
+    // der PCMBuffer für AHI
+    m_q = new AudioQueue(queueSize);
+
+    AACStream *aac = new AACStream();
+    aac->justInit();
+
+    short pcm[4096]; // Puffer für einen Frame
+    m_totalSamples = 0;
+
+    const int RING_SIZE = 65536;
+    const int RING_MASK = RING_SIZE - 1; // Für schnellen Modulo via AND
+    unsigned char *ringBuffer = (unsigned char *)AllocVec(RING_SIZE, MEMF_PUBLIC | MEMF_CLEAR);
+
+    int writePos = 0; // Hier schreibt das Netzwerk rein
+    int readPos = 0;  // Hier liest der Decoder raus
+    int filled = 0;   // Aktueller Füllstand
+
+    const int volFactor = 29491; // 90% via Fixed Point
+
+    // Decoder loop
+    while (!m_terminate)
+    {
+        // Wir schauen, wie viel Platz am Stück im Ring ist (ohne Wrap)
+        int spaceToEnd = RING_SIZE - writePos;
+        int maxToRead = (RING_SIZE - filled) - 1; // 1 Byte Sicherheit
+
+        if (maxToRead > 0)
+        {
+            int toRead = (spaceToEnd < maxToRead) ? spaceToEnd : maxToRead;
+            long res;
+
+            if (sslWrap)
+                res = SSL_read(sslWrap->GetSSL(), (char *)(ringBuffer + writePos), toRead);
+            else
+                res = recv(m_socket, (char *)(ringBuffer + writePos), toRead, 0);
+
+            if (res > 0)
+            {
+                writePos = (writePos + res) & RING_MASK;
+                filled += res;
+            }
+            else if (res == 0)
+                m_terminate = true;
+        }
+
+        // Wir dekodieren im Burst, solange genug Daten für einen Frame da sind
+        while (filled > 4096 && m_q->getFreeSpace() >= 4096)
+        {
+            size_t consumed = 0;
+            // Problem: AAC-Frames können über den Rand des Puffers ragen (Wrap-around).
+            // Lösung: Wir kopieren das Frame kurz in einen kleinen linearen Puffer,
+            // wenn es am Rand "knickt".
+            unsigned char frameStack[4096];
+            unsigned char *decodePtr;
+
+            int linearData = RING_SIZE - readPos;
+            if (linearData >= 4096)
+            {
+                decodePtr = ringBuffer + readPos;
+            }
+            else
+            {
+                // Wrap-around Handling
+                memcpy(frameStack, ringBuffer + readPos, linearData);
+                memcpy(frameStack + linearData, ringBuffer, 4096 - linearData);
+                decodePtr = frameStack;
+            }
+
+            size_t samplesProduced = aac->decodeFrame(decodePtr, filled, &consumed, pcm, 4096);
+
+            if (consumed > 0)
+            {
+                // Volume-Scaling
+                for (int i = 0; i < (int)samplesProduced; i++)
+                    pcm[i] = (short)(((int)pcm[i] * volFactor) >> 15);
+
+                m_q->put(pcm, samplesProduced);
+
+                readPos = (readPos + consumed) & RING_MASK;
+                filled -= consumed;
+                m_totalSamples += (samplesProduced / 2);
+            }
+            else
+            {
+                // Wenn nichts konsumiert wurde (z.B. Header-Suche), 1 Byte skippen
+                readPos = (readPos + consumed) & RING_MASK;
+                filled--;
+            }
+        }
+        Delay(filled > (RING_SIZE / 2) ? 1 : 0);
+    }
+
+    // Cleanup
+    FreeVec(ringBuffer);
+
+    // Cleanup
+    //  Wir habens erstellt, also bauen wirs auch ab
+    if (aac)
+        delete aac;
     delete m_q;
     FreeVec(rawBuffer);
     if (sslWrap)
@@ -273,20 +485,20 @@ void NetworkStream::decodeUrlData(std::string url)
     size_t pos = url.find("://");
     size_t hostStart = pos + 3;
     size_t slashPos = url.find('/', hostStart);
-    size_t portSep  = url.find(':', hostStart);
+    size_t portSep = url.find(':', hostStart);
     size_t hostEnd = (slashPos != std::string::npos) ? slashPos : url.length();
 
-    // 3. Port extrahieren (nur wenn ':' VOR dem ersten '/' kommt)
-    if (portSep != std::string::npos && (slashPos == std::string::npos || portSep < slashPos)) {
+    // Port extrahieren (nur wenn ':' VOR dem ersten '/' kommt)
+    if (portSep != std::string::npos && (slashPos == std::string::npos || portSep < slashPos))
+    {
         // Port vorhanden
         std::string portStr = url.substr(portSep + 1, hostEnd - portSep - 1);
         m_port = atoi(portStr.c_str());
-        strncpy(m_host,url.substr(hostStart, portSep - hostStart).c_str(),127);
-    } 
-    else 
+        strncpy(m_host, url.substr(hostStart, portSep - hostStart).c_str(), 127);
+    }
+    else
         // Kein Port im String -> Standardport (hast du oben ja schon gesetzt)
-        strncpy(m_host,url.substr(hostStart, hostEnd - hostStart).c_str(),127);
-    
+        strncpy(m_host, url.substr(hostStart, hostEnd - hostStart).c_str(), 127);
 
     if (slashPos != std::string::npos)
         strncpy(m_path, url.substr(slashPos).c_str(), 127);
@@ -372,11 +584,15 @@ bool NetworkStream::handleServerResponse(std::string response)
         if (strstr(response.c_str(), "Content-Type: audio/mpeg"))
         {
             // Es ist MP3
+            m_codec = 0;
             return true;
-        } else if (strstr(response.c_str(), "Content-Type: audio/aac") || 
-                strstr(response.c_str(), "Content-Type: audio/aacp") ||
-                strstr(response.c_str(), "Content-Type: audio/mp4")) {
+        }
+        else if (strstr(response.c_str(), "Content-Type: audio/aac") ||
+                 strstr(response.c_str(), "Content-Type: audio/aacp") ||
+                 strstr(response.c_str(), "Content-Type: audio/mp4"))
+        {
             // Es ist AAC / AAC+
+            m_codec = 1;
             return true;
         }
         return false;

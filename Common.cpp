@@ -11,6 +11,27 @@ void stringToLower(std::string& s)
     }
 }
 
+bool containsString(const char* haystack, const char* needle)
+{
+    if (!needle || !needle[0]) return true; // Leere Suche = Treffer
+    
+    const char* h = haystack;
+    const char* n = needle;
+    
+    while (*h) {
+        const char* h_ptr = h;
+        const char* n_ptr = n;
+        
+        while (*h_ptr && *n_ptr && tolower(*h_ptr) == tolower(*n_ptr)) {
+            h_ptr++;
+            n_ptr++;
+        }
+        if (!*n_ptr) return true;
+        h++;
+    }
+    return false;
+}
+
 //Bleibt so, dann compiled es
 size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps) {
     (void)ps; // Status wird am Amiga nicht benötigt

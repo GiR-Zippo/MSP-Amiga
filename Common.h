@@ -68,4 +68,5 @@ extern "C"
     size_t wcslen(const wchar_t* s) __attribute__((weak));
 }   
 void stringToLower(std::string& s);
+bool containsString(const char* haystack, const char* needle);
 #endif

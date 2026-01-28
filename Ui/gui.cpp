@@ -1,5 +1,7 @@
 #include "gui.hpp"
-
+#include "../PlaybackRunner.hpp"
+#include "SharedUiFunctions.hpp"
+#include "PlaylistWindow.hpp"
 
 static struct TagItem seekerTags[] = {
     {GTSL_Min, 0}, {GTSL_Max, 100}, {GTSL_Level, 0}, {GA_Immediate, TRUE}, {GA_RelVerify, TRUE}, {TAG_DONE, 0}
@@ -33,20 +35,11 @@ static char timeBuffer[32] = "00:00 / 00:00";
 
 MainUi::MainUi()
 {
-    m_win = NULL;
+    m_Window = NULL;
     m_gList = NULL;
     m_visInfo = NULL;
     m_AslBase = NULL;
-}
-
-void MainUi::CleanupGUI()
-{
-    if (m_win)
-        CloseWindow(m_win);
-    if (m_gList)
-        FreeGadgets(m_gList);
-    if (m_visInfo)
-        FreeVisualInfo(m_visInfo);
+    m_VolumeLevel = 70;
 }
 
 bool MainUi::SetupGUI()
@@ -88,18 +81,18 @@ bool MainUi::SetupGUI()
 
         //timedisplay will ne extrawurst
         if (playerGadgets[i].id == ID_SEEKER && m_gads[i])
-            GT_SetGadgetAttrs(m_gads[i], m_win, NULL, GTSL_Level, 0, TAG_END);
+            GT_SetGadgetAttrs(m_gads[i], m_Window, NULL, GTSL_Level, 0, TAG_END);
         if (playerGadgets[i].id == ID_VOLUME && m_gads[i])
-            GT_SetGadgetAttrs(m_gads[i], m_win, NULL, GTSL_Level, 100, TAG_END);
+            GT_SetGadgetAttrs(m_gads[i], m_Window, NULL, GTSL_Level, (IPTR)m_VolumeLevel, TAG_END);
         if (playerGadgets[i].id == ID_TIME_DISPLAY && m_gads[i])
-            GT_SetGadgetAttrs(m_gads[i], m_win, NULL, GTTX_Text, (IPTR)timeBuffer, TAG_DONE);
+            GT_SetGadgetAttrs(m_gads[i], m_Window, NULL, GTTX_Text, (IPTR)timeBuffer, TAG_DONE);
 
         if (m_gads[i])
             context = m_gads[i];
     }
 
     // Fenster öffnen
-    m_win = OpenWindowTags(NULL,
+    m_Window = OpenWindowTags(NULL,
                          WA_Title, (Tag) "My Shitty Player",
                          WA_Left, 50,
                          WA_Top, 50,
@@ -113,21 +106,134 @@ bool MainUi::SetupGUI()
 
     UnlockPubScreen(NULL, scr);
 
-    if (!m_win)
+    if (!m_Window)
         return false;
 
-    GT_RefreshWindow(m_win, NULL);
+    GT_RefreshWindow(m_Window, NULL);
     drawVideoPlaceholder();
 //drawVolumeLevel(30);
     return true;
 }
 
+bool MainUi::UpdateUi()
+{
+    struct IntuiMessage *msg;
+    while ((msg = GT_GetIMsg(m_Window->UserPort)))
+    {
+        struct Gadget *gad = (struct Gadget *)msg->IAddress;
+        uint16_t msgCode = msg->Code;
+        GT_ReplyIMsg(msg);
+
+        if (msg->Class == IDCMP_CLOSEWINDOW)
+            return false;
+        if (msg->Class == IDCMP_INTUITICKS)
+        {
+            if (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+            {
+                if (PlaybackRunner::getInstance().hasFlag(PFLAG_PLAYING) &&
+                    !PlaybackRunner::getInstance().hasFlag(PFLAG_SEEK))
+                {
+                    uint32_t currSec = PlaybackRunner::getInstance().GetStream()->getCurrentSeconds();
+                    uint32_t duration = PlaybackRunner::getInstance().GetStream()->getDuration();
+                    if (currSec == 0 || duration == 0)
+                        UpdateTimeDisplay(currSec, duration);
+                    else
+                    {
+                        UpdateTimeDisplay(currSec, duration);
+                        UpdateSeeker((int)((currSec * 100) / duration));
+                    }
+                }
+            }
+        }
+
+        if (msg->Class == IDCMP_GADGETUP)
+        {
+            if (gad->GadgetID == ID_SEEKER)
+            {
+                if (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+                {
+                    uint32_t seekTime = ((uint32_t)msgCode * PlaybackRunner::getInstance().GetStream()->getDuration()) / 100;
+                    PlaybackRunner::getInstance().GetStream()->seek(seekTime);
+                    PlaybackRunner::getInstance().removeFlag(PFLAG_SEEK);
+                }
+            }
+            if (gad->GadgetID == ID_VOLUME)
+            {
+                if (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+                {
+                    PlaybackRunner::getInstance().SetVolume(msgCode);
+                    SetVolume(msgCode);
+                }
+            }
+        }
+
+        if (msg->Class == IDCMP_MOUSEMOVE)
+        {
+            if (gad->GadgetID == ID_SEEKER)
+            {
+                if (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+                {
+                    uint32_t duration = PlaybackRunner::getInstance().GetStream()->getDuration();
+                    uint32_t seekTime = (msgCode * duration) / 100;
+                    UpdateTimeDisplay(seekTime, duration);
+                }
+            }
+        }
+        if (msg->Class == IDCMP_GADGETDOWN)
+        {
+            if (gad->GadgetID == ID_SEEKER)
+                PlaybackRunner::getInstance().setFlag(PFLAG_SEEK);
+        }
+
+        if (msg->Class == IDCMP_GADGETUP)
+        {
+            struct Gadget *gad = (struct Gadget *)msg->IAddress;
+            if (gad->GadgetID == ID_PLAY)
+            {
+                PlaybackRunner::getInstance().setFlag(PFLAG_PLAYING);
+                PlaybackRunner::getInstance().removeFlag(PFLAG_PAUSE);
+            }
+            else if (gad->GadgetID == ID_PAUSE)
+                PlaybackRunner::getInstance().toggleFlag(PFLAG_PAUSE);
+            else if (gad->GadgetID == ID_STOP)
+            {
+                PlaybackRunner::getInstance().setFlag(PFLAG_STOP);
+                PlaybackRunner::getInstance().removeFlag(PFLAG_PAUSE);
+            }
+            else if (gad->GadgetID == ID_OPEN)
+            {
+                // keine playlist mehr
+                PlaylistWindow::getInstance().SetUsePlaylist(false);
+                PlaybackRunner::getInstance().StartPlaybackTask(SharedUiFunctions::OpenFileRequest("#?.(aac|m4a|flac|mp3|ogg)"));
+            }
+            else if (gad->GadgetID == ID_PLAYLIST)
+            {
+                if (PlaylistWindow::getInstance().IsOpen())
+                    PlaylistWindow::getInstance().close();
+                else
+                    PlaylistWindow::getInstance().open();
+            }
+        }
+    }
+    return true;
+}
+
+void MainUi::CleanupGUI()
+{
+    if (m_Window)
+        CloseWindow(m_Window);
+    if (m_gList)
+        FreeGadgets(m_gList);
+    if (m_visInfo)
+        FreeVisualInfo(m_visInfo);
+}
+
 // Zeichnet das schwarze "Video"-Viereck
 void MainUi::drawVideoPlaceholder()
 {
-    if (!m_win)
+    if (!m_Window)
         return;
-    struct RastPort *rp = m_win->RPort;
+    struct RastPort *rp = m_Window->RPort;
 
     // Rahmen zeichnen
     SetAPen(rp, 1); // Meist Schwarz/Blau je nach Palette
@@ -142,15 +248,15 @@ void MainUi::drawVideoPlaceholder()
 // Aktualisiert den Slider von außen
 void MainUi::UpdateSeeker(long percent)
 {
-    if (m_win && m_gads[ID_SEEKER])
-        GT_SetGadgetAttrs(m_gads[ID_SEEKER], m_win, NULL, GTSL_Level, percent, TAG_END);
+    if (m_Window && m_gads[ID_SEEKER])
+        GT_SetGadgetAttrs(m_gads[ID_SEEKER], m_Window, NULL, GTSL_Level, percent, TAG_END);
 }
 
 void MainUi::drawVolumeLevel(long level) {
     return;
     //noch nicht
-    if (!m_win) return;
-    struct RastPort *rp = m_win->RPort;
+    if (!m_Window) return;
+    struct RastPort *rp = m_Window->RPort;
 
     int x = 287; // Rechts neben dem Volume Slider
     int y_bottom = 123;
@@ -181,7 +287,7 @@ void MainUi::formatTimeOldschool(char* b, uint32_t s)
 
 void MainUi::UpdateTimeDisplay(uint32_t lap, uint32_t total)
 {
-    if (!m_win || !m_gads[ID_TIME_DISPLAY]) return;
+    if (!m_Window || !m_gads[ID_TIME_DISPLAY]) return;
 
     // Zeit berechnen
     uint32_t curSec  = lap;
@@ -195,36 +301,5 @@ void MainUi::UpdateTimeDisplay(uint32_t lap, uint32_t total)
     sprintf(timeBuffer, "%s / %s", lapBuf, durBuf);
 
     // Gadget aktualisieren
-    GT_SetGadgetAttrs(m_gads[ID_TIME_DISPLAY], m_win, NULL, GTTX_Text, (Tag)timeBuffer, TAG_DONE);
-}
-
-std::string MainUi::OpenFileRequest()
-{
-    std::string fullPath = "";
-    struct FileRequester *fr = (struct FileRequester *)AllocAslRequest(ASL_FileRequest, NULL);
-    if (fr)
-    {
-        if (AslRequestTags(fr,
-                           ASLFR_TitleText, (Tag) "Datei auswählen...",
-                           ASLFR_InitialDrawer, (Tag) "RAM:",
-                           ASLFR_DoPatterns, TRUE,               // Aktiviert das Pattern-Feld
-                           ASLFR_InitialPattern, (Tag) "#?.(aac|m4a|flac|mp3|ogg)", // Das eigentliche Pattern
-                           TAG_DONE))
-        {
-            std::string drawer = (char *)fr->fr_Drawer;
-            std::string file = (char *)fr->fr_File;
-
-            // Pfad-Logik (Prüfen ob Drawer mit '/' oder ':' endet)
-            fullPath = drawer;
-            if (!fullPath.empty())
-            {
-                char lastChar = fullPath[fullPath.length() - 1];
-                if (lastChar != ':' && lastChar != '/')
-                    fullPath += "/";
-            }
-            fullPath += file;
-        }
-        FreeAslRequest(fr);
-    }
-    return fullPath;
+    GT_SetGadgetAttrs(m_gads[ID_TIME_DISPLAY], m_Window, NULL, GTTX_Text, (Tag)timeBuffer, TAG_DONE);
 }

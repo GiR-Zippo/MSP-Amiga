@@ -40,8 +40,11 @@ extern "C"
     /* API Funktionen */
     dr_aac *dr_aac_open_file(const char *filename);
     dr_aac *dr_aac_open_m4a(const char *filename);
+    dr_aac *dr_aac_init(); // raw frame decoding
     bool dr_aac_seek_to(dr_aac *pAac, unsigned long targetMs);
     size_t dr_aac_read_s16(dr_aac *pAac, size_t samplesToRead, short *pOutput);
+    size_t dr_aac_read_frame_s16(dr_aac *pAac, unsigned char *inBuffer, size_t inSize,
+                                 size_t *bytesConsumed, short *pOutput, size_t maxSamples);
     void dr_aac_close(dr_aac *pAac);
 
     unsigned long read32BE(FILE *f);
@@ -55,7 +58,7 @@ extern "C"
 /* -------------------------------------------------------------------------- */
 /* Implementations                                                            */
 /* -------------------------------------------------------------------------- */
-//#define DEBUG
+// #define DEBUG
 #ifdef DR_AAC_IMPLEMENTATION
 #define AAC_READ_SIZE 4096
 
@@ -192,7 +195,7 @@ bool parseM4A(const char *filename, M4AFrame *stream)
     return false;
 }
 
-bool buildSeekTable(FILE* f, M4AFrame *stream)
+bool buildSeekTable(FILE *f, M4AFrame *stream)
 {
     fseek(f, 0, SEEK_END);
     unsigned long fileSize = ftell(f);
@@ -201,7 +204,7 @@ bool buildSeekTable(FILE* f, M4AFrame *stream)
     // Grobe Schätzung der Frame-Anzahl (ca. 25-30 ms pro Frame)
     // Ein 4-Minuten-Song hat ca. 10.000 Frames.
     unsigned long maxFrames = fileSize / 200; // Konservative Schätzung
-    stream->sampleSizes = (unsigned long*)malloc(maxFrames * sizeof(unsigned long));
+    stream->sampleSizes = (unsigned long *)malloc(maxFrames * sizeof(unsigned long));
     stream->sampleCount = 0;
 
     unsigned char header[7];
@@ -215,15 +218,17 @@ bool buildSeekTable(FILE* f, M4AFrame *stream)
         // Sync-Wort prüfen (0xFFF)
         if (header[0] == 0xFF && (header[1] & 0xF0) == 0xF0)
         {
-            if (stream->sampleCount == 0) stream->firstFrameOffset = currentPos;
+            if (stream->sampleCount == 0)
+                stream->firstFrameOffset = currentPos;
 
             // Frame-Länge aus ADTS-Header extrahieren
             // Die Länge steht in den Bits 30 bis 42 des Headers
-            unsigned long frameLen = ((header[3] & 0x03) << 11) | 
-                                     (header[4] << 3) | 
+            unsigned long frameLen = ((header[3] & 0x03) << 11) |
+                                     (header[4] << 3) |
                                      ((header[5] & 0xE0) >> 5);
 
-            if (frameLen < 7) break; // Fehlerhafter Header
+            if (frameLen < 7)
+                break; // Fehlerhafter Header
             stream->sampleSizes[stream->sampleCount++] = frameLen;
             currentPos += frameLen;
         }
@@ -301,7 +306,7 @@ dr_aac *dr_aac_open_m4a(const char *filename)
     NeAACDecConfigurationPtr config = NeAACDecGetCurrentConfiguration(pAac->handle);
     config->outputFormat = FAAD_FMT_16BIT; // Wir arbeiten mit 16Bit
     config->downMatrix = 1;                // und das soll so bleiben
-    //config->dontUpSampleImplicitSBR = 0;
+    // config->dontUpSampleImplicitSBR = 0;
     NeAACDecSetConfiguration(pAac->handle, config);
 
     if (NeAACDecInit2(pAac->handle, pAac->m4aframe.asc, 2, &sr, &ch) < 0)
@@ -316,9 +321,27 @@ dr_aac *dr_aac_open_m4a(const char *filename)
     return pAac;
 }
 
+dr_aac *dr_aac_init()
+{
+    dr_aac *pAac = (dr_aac *)calloc(1, sizeof(dr_aac));
+    if (!pAac)
+        return NULL;
+
+    pAac->handle = NeAACDecOpen();
+    pAac->channels = 0;
+
+    NeAACDecConfigurationPtr conf = NeAACDecGetCurrentConfiguration(pAac->handle);
+    conf->outputFormat = FAAD_FMT_16BIT;
+    // conf->downMatrix = 1;
+    conf->dontUpSampleImplicitSBR = 0;
+    NeAACDecSetConfiguration(pAac->handle, conf);
+
+    return pAac;
+}
+
 bool dr_aac_seek_to(dr_aac *pAac, unsigned long targetMs)
 {
-    if (!pAac->m4aframe.sampleSizes || pAac->m4aframe.sampleCount == 0) 
+    if (!pAac->m4aframe.sampleSizes || pAac->m4aframe.sampleCount == 0)
         return false;
 
     // Ziel-Frame-Index berechnen
@@ -327,7 +350,7 @@ bool dr_aac_seek_to(dr_aac *pAac, unsigned long targetMs)
     double msPerFrame = (1024.0 * 1000.0) / (double)pAac->samplerate;
     unsigned long targetFrameIndex = (unsigned long)(targetMs / msPerFrame);
 
-    if (targetFrameIndex >= pAac->m4aframe.sampleCount) 
+    if (targetFrameIndex >= pAac->m4aframe.sampleCount)
         targetFrameIndex = pAac->m4aframe.sampleCount - 1;
 
     // Byte-Offset berechnen
@@ -344,7 +367,7 @@ bool dr_aac_seek_to(dr_aac *pAac, unsigned long targetMs)
 
 size_t dr_aac_read_s16(dr_aac *pAac, size_t samplesToRead, short *pOutput)
 {
-    if(!pAac->handle)
+    if (!pAac->handle)
         return 0;
     size_t totalGrabbed = 0;
     static unsigned char bitstream[AAC_READ_SIZE * 2]; // Lokaler Cache
@@ -373,29 +396,15 @@ size_t dr_aac_read_s16(dr_aac *pAac, size_t samplesToRead, short *pOutput)
         }
         else
         {
-            //if (pAac->is_m4a)
+            unsigned long nextFrameSize = pAac->m4aframe.sampleSizes[pAac->m4aframe.currentSampleIndex++];
+            if (bytesInCache < nextFrameSize)
             {
-                unsigned long nextFrameSize = pAac->m4aframe.sampleSizes[pAac->m4aframe.currentSampleIndex++];
-                if (bytesInCache < nextFrameSize)
-                {
-                    bytesInCache = 0;
-                    size_t read = fread(bitstream, 1, nextFrameSize, pAac->file);
-                    bytesInCache = read; // wir arbeiten mit frames, also bytesInCache immer was gelesen wurde
-                    if (read < nextFrameSize)
-                        break;
-                }
+                bytesInCache = 0;
+                size_t read = fread(bitstream, 1, nextFrameSize, pAac->file);
+                bytesInCache = read; // wir arbeiten mit frames, also bytesInCache immer was gelesen wurde
+                if (read < nextFrameSize)
+                    break;
             }
-            /*else
-            {
-                /* Cache auffüllen, falls zu wenig Daten da sind 
-                if (bytesInCache < AAC_READ_SIZE)
-                {
-                    size_t read = fread(bitstream + bytesInCache, 1, AAC_READ_SIZE, pAac->file);
-                    if (read == 0 && bytesInCache == 0)
-                        break; // EOF
-                    bytesInCache += read;
-                }
-            }*/
             NeAACDecFrameInfo info;
             void *pDecoded = NeAACDecDecode(pAac->handle, &info, bitstream, bytesInCache);
 
@@ -428,6 +437,112 @@ size_t dr_aac_read_s16(dr_aac *pAac, size_t samplesToRead, short *pOutput)
         }
     }
     return totalGrabbed / 2; // Das muss so!
+}
+
+struct ADTSHeader
+{
+    bool hasCRC;
+    int objectType;
+    int sampleRateIdx;
+    int channels;
+    int frameLength;
+};
+
+bool parse_adts_header(const unsigned char *p, ADTSHeader *h)
+{
+    // Sync Check (FF F)
+    if (p[0] != 0xFF || (p[1] & 0xF0) != 0xF0)
+        return false;
+
+    // CRC vorhanden? (Bit 16 ist 'Protection Absent')
+    h->hasCRC = !(p[1] & 0x01);
+
+    // Object Type (Profile) - 2 Bits
+    h->objectType = (p[2] >> 6) + 1;
+
+    // Sampling Frequency Index - 4 Bits
+    h->sampleRateIdx = (p[2] & 0x3C) >> 2;
+
+    // Channel Configuration - 3 Bits
+    h->channels = ((p[2] & 0x01) << 2) | ((p[3] & 0xC0) >> 6);
+
+    // Frame Length - 13 Bits (Byte 3, 4, 5)
+    h->frameLength = ((p[3] & 0x03) << 11) | (p[4] << 3) | ((p[5] & 0xE0) >> 5);
+
+    // Plausibilitäts-Check für Amiga (Error #12 Prävention)
+    if (h->channels == 0 || h->channels > 2 || h->frameLength < 7)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+size_t dr_aac_read_frame_s16(dr_aac *pAac, unsigned char *inBuffer, size_t inSize,
+                             size_t *bytesConsumed, short *pOutput, size_t maxSamples)
+{
+    ADTSHeader h;
+    NeAACDecFrameInfo info;
+
+    // Header suchen und parsen
+    if (inSize < 7 || !parse_adts_header(inBuffer, &h))
+    {
+        *bytesConsumed = 1; // Weitersuchen
+        return 0;
+    }
+
+    if (inSize < (size_t)h.frameLength)
+    {
+        *bytesConsumed = 0; // Warten auf mehr Daten
+        return 0;
+    }
+
+    // EINMALIGES INIT (beim ersten validen Header)
+    // pAac->channels sind ohne init immer 0
+    if (pAac->channels == 0)
+    {
+        // Wir bauen das ASC (AudioSpecificConfig) aus den Header-Infos
+        // ObjectType, SampleRateIdx und Channels
+        unsigned char asc[2];
+        asc[0] = (h.objectType << 3) | (h.sampleRateIdx >> 1);
+        asc[1] = ((h.sampleRateIdx & 0x01) << 7) | (h.channels << 3);
+
+        unsigned long sr;
+        unsigned char ch;
+        if (NeAACDecInit2(pAac->handle, asc, 2, &sr, &ch) >= 0)
+        {
+            pAac->channels = ch;
+            pAac->samplerate = sr;
+        }
+    }
+
+    // DECODER FÜTTERN (ABER OHNE HEADER!)
+    // Wir überspringen die 7 (oder 9 mit CRC) Bytes des ADTS-Headers
+    size_t headerSize = h.hasCRC ? 9 : 7;
+    size_t rawDataSize = h.frameLength - headerSize;
+
+    void *pDecoded = NeAACDecDecode(pAac->handle, &info, inBuffer + headerSize, rawDataSize);
+    if (info.error == 0 && pDecoded)
+    {
+        *bytesConsumed = h.frameLength;
+        pAac->samplerate = info.samplerate;
+        pAac->channels = info.channels;
+
+        short *src = (short *)pDecoded;
+        size_t samplesToCopy = (info.samples < maxSamples) ? info.samples : maxSamples;
+
+        memcpy(pOutput, src, samplesToCopy * sizeof(short));
+
+        // GIB DIE GESAMTZAHL DER WERTE ZURÜCK!
+        return samplesToCopy;
+    }
+    else
+    {
+        printf("Nope\n");
+        // Wenn selbst das fehlschlägt, ist das Frame-Datenpaket korrupt (z.B. dVHS Müll)
+        *bytesConsumed = 1;
+        return 0;
+    }
 }
 
 void dr_aac_close(dr_aac *pAac)

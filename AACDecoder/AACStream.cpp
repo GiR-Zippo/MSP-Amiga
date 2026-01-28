@@ -47,6 +47,16 @@ bool AACStream::openm4a(const char *filename)
     return true;
 }
 
+bool AACStream::justInit()
+{
+    m_aac = dr_aac_init();
+    if (!m_aac)
+        return false;
+
+    m_initialized = true;
+    return true;
+}
+
 bool AACStream::seek(uint32_t targetSeconds)
 {
     dr_aac_seek_to(m_aac, (targetSeconds*1000));
@@ -71,6 +81,13 @@ int AACStream::readSamples(short *targetBuffer, int samplesToRead)
     m_channels = m_aac->channels;
     // Wir übergeben die vollen samplesToRead, den Rest macht der wrapper
     return dr_aac_read_s16(m_aac, samplesToRead, targetBuffer);
+}
+
+int AACStream::decodeFrame(unsigned char* inBuffer, size_t inSize, size_t *bytesConsumed, short *pOutput, size_t maxSamples)
+{
+    m_sampleRate = m_aac->samplerate;
+    m_channels = m_aac->channels;
+    return dr_aac_read_frame_s16(m_aac, inBuffer, inSize, bytesConsumed, pOutput, maxSamples);
 }
 
 uint32_t AACStream::getCurrentSeconds() const

@@ -26,26 +26,37 @@ struct PlayerGadgetDef {
 class MainUi
 {
     public:
-        MainUi();
-        ~MainUi(){};
-        // Funktions-Prototypen
+        static MainUi& getInstance()
+        {
+            static MainUi instance;
+            return instance;
+        }
+
         bool SetupGUI();
+        bool UpdateUi();
         void CleanupGUI();
-        std::string OpenFileRequest();
+
         void UpdateSeeker(long percent);
         void UpdateTimeDisplay(uint32_t lap, uint32_t total);
-        ULONG GetWinSignal(){ return 1L << m_win->UserPort->mp_SigBit; }
-        Window* GetWindow() { return m_win; }
+        ULONG GetWinSignal(){ return 1L << m_Window->UserPort->mp_SigBit; }
+        Window* GetWindow() { return m_Window; }
+        void SetVolume(uint16_t vol) {m_VolumeLevel = vol;}
+        uint16_t GetVolume() {return m_VolumeLevel;}
     private:
+        MainUi();
+        MainUi(const MainUi&);
+        MainUi& operator=(const MainUi&);
+
+        void sendMessage();
         void drawVideoPlaceholder();
         void drawVolumeLevel(long level);
         void formatTimeOldschool(char* b, uint32_t s);
         void createGadget();
-        // Globale Pointer, damit main.cpp darauf zugreifen kann
-        struct Window *m_win;
+        struct Window *m_Window;
         struct Library *m_AslBase;
         struct Gadget *m_gList;
         struct Gadget *m_gads[PLAYER_GADS_COUNT];
         void *m_visInfo;
+        uint16_t m_VolumeLevel;
 };
 #endif

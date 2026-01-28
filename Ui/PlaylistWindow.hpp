@@ -8,6 +8,8 @@ struct SongNode
     struct Node node;
     char name[256];
     char path[256];
+    int OriginalIndex;
+    BOOL Visible;
 };
 
 struct PlaylistGadgetDef
@@ -19,46 +21,72 @@ struct PlaylistGadgetDef
     struct TagItem *tags;
 };
 
+enum PlaylistGads
+{
+    PLAYLIST_MODE = 0,
+    PLAYLIST_SEARCH,
+    PLAYLIST_LIST,
+    PLAYLIST_ADD,
+    PLAYLIST_REMOVE,
+    PLAYLIST_CLEAR,
+    PLAYLIST_MAX,
+};
+
 class PlaylistWindow
 {
+    public:
+        static PlaylistWindow& getInstance()
+        {
+            static PlaylistWindow instance;
+            return instance;
+        }
+        bool SetupGUI();
+        int16_t UpdateUi();
+        void CleanupGUI();
 
-public:
-    PlaylistWindow();
-    ~PlaylistWindow();
+        void open();
+        void close();
 
-    bool open();
-    void close();
-    void addEntry(std::string name, std::string fullPath);
-    int16_t HandleMessages();
-    ULONG GetWinSignal() { return 1L << m_Window->UserPort->mp_SigBit; }
-    bool IsOpen() { return m_opened; }
-    void SetUsePlaylist(bool yes) { m_playlistInUse = yes;}
-    void PlayNext();
-    // Callback oder Variable für den gewählten Song
-    char selectedPath[256];
-    bool songSelected;
+        void addEntry(std::string name, std::string fullPath);
 
-private:
-    std::string openFileRequest();
-    void clearList();
-    struct Node *findNode(int index);
-    bool getLine(BPTR file, std::string &line);
-    void parsePlaylist(const char *filename);
+        ULONG GetWinSignal() { return 1L << m_Window->UserPort->mp_SigBit; }
+        bool IsOpen() { return m_opened; }
+        void SetUsePlaylist(bool yes) { m_playlistInUse = yes; }
+        void PlayNext();
+        // Callback oder Variable für den gewählten Song
+        char selectedPath[256];
+        bool songSelected;
 
-    struct Window   *m_Window;
-    struct MsgPort  *m_Port;
-    void            *m_VisInfo;
-    struct Gadget   *m_GadgetList;
-    struct List      m_SongList; // Exec-Liste für GadTools
-    struct Gadget   *m_Gads[4];
-    int32_t          m_SelectedIndex;
-    bool             m_opened;
-    bool             m_playlistInUse;
-    uint8_t          m_playlistMode;
+    private:
+        PlaylistWindow();
+        PlaylistWindow(const PlaylistWindow&);
+        PlaylistWindow& operator=(const PlaylistWindow&);
 
-    //DblClick
-    ULONG            m_lastClickSeconds;
-    ULONG            m_lastClickMicros;
+        void clearList();
+        struct Node *findNode(int index);
+        bool getLine(BPTR file, std::string &line);
+        void parsePlaylist(const char *filename);
+        void filter(const char *searchCrit);
+        void sortPlaylist();
+        void showAll();
+
+        struct Window *m_Window;
+        struct MsgPort *m_Port;
+        void *m_VisInfo;
+        struct Gadget *m_GadgetList;
+        struct List m_SongList;   // Die sichtbare SongListe
+        struct List m_HiddenList; // Die Shadowliste
+        struct Gadget *m_Gads[PLAYLIST_MAX];
+        int32_t m_SelectedIndex;
+        bool m_opened;
+        bool m_playlistInUse;
+        uint8_t m_playlistMode;
+
+        // SuFu
+        char m_searchBuffer[64];
+        // DblClick
+        ULONG m_lastClickSeconds;
+        ULONG m_lastClickMicros;
 };
 
 #endif

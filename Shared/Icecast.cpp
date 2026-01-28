@@ -77,6 +77,11 @@ void Icecast::FetchList(List &songList)
         streamBuffer += buffer;
 
         size_t startPos;
+        int nextIndex = 0;
+        struct SongNode *lastNode = (struct SongNode *)songList.lh_TailPred;
+        if (lastNode->node.ln_Pred)
+            nextIndex = lastNode->OriginalIndex + 1;
+
         // Suche nach dem Anfang eines Objekts
         while ((startPos = streamBuffer.find('{')) != std::string::npos)
         {
@@ -91,20 +96,21 @@ void Icecast::FetchList(List &songList)
                 std::string name = getJsonValue(stationJson, "name");
                 std::string url = getJsonValue(stationJson, "url_resolved");
                 std::string codec = getJsonValue(stationJson, "codec");
+                int lastcheckok = getJsonIntValue(stationJson, "lastcheckok");
                 if (!name.empty())
                 {
-                    printf("Station: %s\nURL: %s\n", name.c_str(), url.c_str());
-                    // MP3 only atm
-                    if (strstr(codec.c_str(), "MP3"))
+                    // MP3 and AAC+ only atm
+                    if ((strstr(codec.c_str(), "AAC+") || strstr(codec.c_str(), "MP3")) && lastcheckok == 1)
                     {
                         removeFromString(name, "\\t");
                         removeFromString(name, "\\r");
                         removeFromString(name, "\\n");
-
+                        
                         SongNode *sn = new SongNode;
-                        strncpy(sn->name, name.c_str(), sizeof(sn->name) - 1);
+                        sprintf(sn->name, "[%s] %s", codec.c_str(), name.c_str());
                         sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
                         sn->node.ln_Name = sn->name;
+                        sn->OriginalIndex = nextIndex++;
                         strncpy(sn->path, url.c_str(), 255);
                         sn->path[255] = '\0';
 
@@ -116,8 +122,6 @@ void Icecast::FetchList(List &songList)
             else
                 break;
         }
-
-        // Sicherheitsbremse: Falls streamBuffer zu groß wird (Müll-Daten)
         if (streamBuffer.length() > 10000)
             streamBuffer = "";
     }
@@ -137,6 +141,21 @@ std::string Icecast::getJsonValue(const std::string &json, const std::string &ke
         return "";
 
     return json.substr(start, end - start);
+}
+
+int Icecast::getJsonIntValue(const std::string &json, const std::string &key)
+{
+    std::string searchKey = "\"" + key + "\":";
+    size_t start = json.find(searchKey);
+    if (start == std::string::npos)
+        return -1;
+
+    start += searchKey.length();
+    size_t end = json.find("\"", start);
+    if (end == std::string::npos)
+        return -1;
+
+    return atoi(json.substr(start, end - start).c_str());
 }
 
 void Icecast::removeFromString(std::string &src, std::string arg)

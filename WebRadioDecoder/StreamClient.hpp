@@ -66,7 +66,7 @@ class NetworkStream : public AudioStream
     private:
         static void taskEntry(); // Der Amiga-Prozess-Einstieg
         void StreamLoop();       // Die Netzwerk-Logik
-
+void StreamLoopAAC();       // Die Netzwerk-Logik
         void closeStream();
         void decodeUrlData(std::string url);
         bool testConnection();
@@ -81,7 +81,7 @@ class NetworkStream : public AudioStream
         char            m_path[128];
         uint16_t        m_port;
         bool            m_isHTTP;
-
+        uint8_t         m_codec;
         volatile bool   m_connected;
         volatile bool   m_terminate;
         volatile uint32_t m_bytesRead;

@@ -12,6 +12,7 @@ class Icecast
     private:
         AmiSSL *m_amiSSL;
         std::string getJsonValue(const std::string &json, const std::string &key);
+        int getJsonIntValue(const std::string &json, const std::string &key);
         void removeFromString(std::string &src, std::string arg);
 
 };

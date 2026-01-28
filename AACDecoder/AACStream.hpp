@@ -15,9 +15,11 @@ class AACStream : public AudioStream
 
         bool     open(const char* filename);
         bool     openm4a(const char* filename);
+        bool     justInit();
         bool     seek(uint32_t targetSeconds);
         bool     seekRelative(int32_t targetSeconds);
         int      readSamples(short* buffer, int samplesToRead);
+        int      decodeFrame(unsigned char* inBuffer, size_t inSize, size_t *bytesConsumed, short *pOutput, size_t maxSamples);
         uint32_t getCurrentSeconds() const;
         uint32_t getDuration() const { return m_duration; }
         uint32_t getSampleRate() const { return m_sampleRate; }

@@ -1,28 +1,48 @@
 #include "PlaylistWindow.hpp"
 #include "../Shared/Icecast.hpp"
+#include "SharedUiFunctions.hpp"
 
-struct GTMX_SpecialInfo {
+struct GTMX_SpecialInfo
+{
     uint16_t si_Active;
 };
 
-const char *playlistModi[] = 
-{
-    "Playlist", 
-    "Icecast",
-    NULL
-};
+const char *playlistModi[] =
+    {
+        "Playlist",
+        "Icecast",
+        NULL};
 
 static struct TagItem buttonTags[] = {
     {GTTX_Border, TRUE}, {TAG_DONE, 0}};
 
 static struct PlaylistGadgetDef playlistGadgets[] = {
-    // Kind           X     Y       W       H       Label       ID    Tags
-    {CYCLE_KIND,    10,     20,     230,    20,     "Mode",     1000, buttonTags},
-    {LISTVIEW_KIND, 10,     50,     230,    200,    "",         1001, buttonTags},
-    {BUTTON_KIND,   10,     245,    50,     20,     "Add",      1002, buttonTags},
-    {BUTTON_KIND,   60,     245,    50,     20,     "Remove",   1003, buttonTags},
-    {BUTTON_KIND,   110,    245,    50,     20,     "Clear",    1004, buttonTags}
+    // Kind           X     Y       W       H       Label       ID                  Tags
+    {CYCLE_KIND,     10,    20,     230,    20,     "Mode",     PLAYLIST_MODE,   buttonTags},
+    {STRING_KIND,    10,    45,     230,    20,     "",         PLAYLIST_SEARCH, buttonTags},
+    {LISTVIEW_KIND,  10,    70,     230,    200,    "",         PLAYLIST_LIST,   buttonTags},
+    {BUTTON_KIND,    10,    265,    50,     20,     "Add",      PLAYLIST_ADD,    buttonTags},
+    {BUTTON_KIND,    60,    265,    50,     20,     "Remove",   PLAYLIST_REMOVE, buttonTags},
+    {BUTTON_KIND,    110,   265,    50,     20,     "Clear",    PLAYLIST_CLEAR,  buttonTags}
 };
+
+BOOL DoubleCheck(ULONG s1, ULONG m1, ULONG s2, ULONG m2)
+{
+    /* Wenn mehr als 1 Sekunde vergangen ist, ist es sicher kein Doppelklick */
+    if (s2 - s1 > 1)
+        return false;
+
+    /* Wenn genau 1 Sekunde vergangen ist */
+    if (s2 - s1 == 1)
+    {
+        if (m2 + (1000000 - m1) <= 400000)
+            return true;
+        return false;
+    }
+    if (m2 - m1 <= 400000)
+        return true;
+    return false;
+}
 
 PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
 {
@@ -34,37 +54,11 @@ PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
     m_SelectedIndex = -1;
     m_lastClickSeconds = 0;
     m_lastClickMicros = 0;
-}
-
-PlaylistWindow::~PlaylistWindow()
-{
-    close();
-    clearList();
-}
-
-/// @brief Closes only the window
-void PlaylistWindow::close()
-{
-    m_opened = false;
-    if (m_Window)
-    {
-        CloseWindow(m_Window);
-        m_Window = NULL;
-    }
-    if (m_GadgetList)
-    {
-        FreeGadgets(m_GadgetList);
-        m_GadgetList = NULL;
-    }
-    if (m_VisInfo)
-    {
-        FreeVisualInfo(m_VisInfo);
-        m_VisInfo = NULL;
-    }
+    m_searchBuffer[0] = '\0';
 }
 
 /// @brief Opens the window and init the gads
-bool PlaylistWindow::open()
+bool PlaylistWindow::SetupGUI()
 {
     struct Screen *scr = LockPubScreen(NULL);
     if (!scr)
@@ -90,16 +84,16 @@ bool PlaylistWindow::open()
     ng.ng_VisualInfo = m_VisInfo;
     ng.ng_TextAttr = NULL;
     ng.ng_Flags = 0;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < PLAYLIST_MAX; i++)
     {
         ng.ng_LeftEdge = playlistGadgets[i].x;
         ng.ng_TopEdge = playlistGadgets[i].y;
         ng.ng_Width = playlistGadgets[i].w;
         ng.ng_Height = playlistGadgets[i].h;
         ng.ng_GadgetText = (CONST_STRPTR)playlistGadgets[i].label;
-        ng.ng_GadgetID = playlistGadgets[i].id;
+        ng.ng_GadgetID = playlistGadgets[i].id*1000;
 
-        if (i == 1)
+        if (i == PLAYLIST_LIST) //playlist
         {
             m_Gads[i] = CreateGadget(playlistGadgets[i].kind, context, &ng,
                                      GTLV_Labels, (Tag)&m_SongList,
@@ -107,12 +101,19 @@ bool PlaylistWindow::open()
                                      GTLV_ScrollWidth, 18L,
                                      TAG_DONE);
         }
-        else if (i==0)
+        else if (i == PLAYLIST_SEARCH) // SuFu
         {
-            m_Gads[i] = CreateGadget(CYCLE_KIND, context, &ng,
-            GTCY_Labels, (Tag)playlistModi,
-            GTCY_Active, m_playlistMode, // Welcher Eintrag ist am Anfang aktiv?
-            TAG_DONE);
+            m_Gads[i] = CreateGadget(playlistGadgets[i].kind, context, &ng,
+                                     GTST_String, (Tag)m_searchBuffer, // Verknüpfung mit Puffer
+                                     GTST_MaxChars, 63,           // Limit
+                                     TAG_DONE);
+        }
+        else if (i == PLAYLIST_MODE) //Modus
+        {
+            m_Gads[i] = CreateGadget(playlistGadgets[i].kind, context, &ng,
+                                     GTCY_Labels, (Tag)playlistModi,
+                                     GTCY_Active, m_playlistMode, // Welcher Eintrag ist am Anfang aktiv?
+                                     TAG_DONE);
         }
         else
             m_Gads[i] = CreateGadgetA(playlistGadgets[i].kind, context, &ng, playlistGadgets[i].tags);
@@ -121,7 +122,7 @@ bool PlaylistWindow::open()
             context = m_Gads[i];
     }
 
-    if (!m_Gads[1])
+    if (!m_Gads[PLAYLIST_LIST])
     {
         printf("Fehler: CreateGadget(LISTVIEW_KIND) liefert NULL!\n");
         FreeGadgets(m_GadgetList);
@@ -154,81 +155,49 @@ bool PlaylistWindow::open()
     return false;
 }
 
-void PlaylistWindow::addEntry(std::string name, std::string fullPath)
-{
-    SongNode *sn = new SongNode;
-    strncpy(sn->name, name.c_str(), sizeof(sn->name) - 1);
-    sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
-    sn->node.ln_Name = sn->name;
-    strncpy(sn->path, fullPath.c_str(), 255);
-    sn->path[255] = '\0';
-
-    AddTail(&m_SongList, (struct Node *)sn);
-
-    if (m_Window && m_Gads[1])
-    {
-        GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL, GTLV_Labels, (IPTR)-1, TAG_DONE);
-        GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL,
-                          GTLV_Labels, (IPTR)&m_SongList,
-                          GTLV_ShowSelected, NULL,
-                          TAG_DONE);
-    }
-}
-
-BOOL DoubleCheck(ULONG s1, ULONG m1, ULONG s2, ULONG m2)
-{
-    /* Wenn mehr als 1 Sekunde vergangen ist, ist es sicher kein Doppelklick */
-    if (s2 - s1 > 1)
-        return false;
-
-    /* Wenn genau 1 Sekunde vergangen ist */
-    if (s2 - s1 == 1)
-    {
-        if (m2 + (1000000 - m1) <= 400000)
-            return true;
-        return false;
-    }
-    if (m2 - m1 <= 400000)
-        return true;
-    return false;
-}
-
-int16_t PlaylistWindow::HandleMessages()
+int16_t PlaylistWindow::UpdateUi()
 {
     if (!m_Window)
         return -1;
 
     struct IntuiMessage *msg;
-    while ((msg = GT_GetIMsg(m_Port)))
+    while ((msg = GT_GetIMsg(m_Window->UserPort)))
     {
-        uint32_t classMsg = msg->Class;
-        uint16_t code = msg->Code;
-
         struct Gadget *gad = (struct Gadget *)msg->IAddress;
-
+        uint16_t msgCode = msg->Code;
         GT_ReplyIMsg(msg);
 
-        if (classMsg == IDCMP_CLOSEWINDOW)
+        if (msg->Class == IDCMP_CLOSEWINDOW)
             close();
 
-        if (classMsg == IDCMP_GADGETUP && gad->GadgetID == 1000)
+        if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_MODE*1000)
         {
-            printf("Suche jetzt nach: %s\n", playlistModi[code]);
-            GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
+            printf("Suche jetzt nach: %s\n", playlistModi[msgCode]);
+            GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
             clearList();
-            m_playlistMode = code;
-            if (code == 1)
+            m_playlistMode = msgCode;
+            if (msgCode == 1)
             {
-                Icecast* _icecast = new Icecast();
+                Icecast *_icecast = new Icecast();
                 _icecast->FetchList(m_SongList);
                 delete _icecast;
             }
-            GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
-            
+            GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
         }
-        if (classMsg == IDCMP_GADGETUP && gad->GadgetID == 1001)
+        if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_SEARCH*1000)
         {
-            int32_t selectedIndex = code;
+            struct StringInfo *si = (struct StringInfo *)gad->SpecialInfo;
+            strcpy(m_searchBuffer, (const char*)si->Buffer);
+            printf("Suche nach: %s\n", m_searchBuffer); 
+            if (m_searchBuffer[0] == '\0')
+                showAll();
+            else
+                filter(m_searchBuffer);
+                
+        }
+        if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_LIST*1000)
+        {
+            int32_t selectedIndex = msgCode;
             if (DoubleCheck(m_lastClickSeconds, m_lastClickMicros, msg->Seconds, msg->Micros))
             {
                 Node *n = findNode(selectedIndex);
@@ -244,43 +213,108 @@ int16_t PlaylistWindow::HandleMessages()
             m_lastClickSeconds = msg->Seconds;
             m_lastClickMicros = msg->Micros;
         }
-        if (classMsg == IDCMP_GADGETUP && gad->GadgetID == 1002) // Add
+        if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_ADD*1000) // Add
         {
-            std::string filename = openFileRequest();
+            std::string filename = SharedUiFunctions::OpenFileRequest("#?.(aac|m4a|flac|mp3|ogg|m3u)");
             if (!filename.empty())
             {
-                if (strstr(filename.c_str(), ".m3u"))   
+                if (strstr(filename.c_str(), ".m3u"))
                     parsePlaylist(filename.c_str());
                 else
                     addEntry(FilePart((STRPTR)filename.c_str()), filename);
             }
         }
-        if (classMsg == IDCMP_GADGETUP && gad->GadgetID == 1003) // Remove
+        if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_REMOVE*1000) // Remove
         {
             if (m_SelectedIndex != -1)
             {
-                GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
+                GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
                 Node *n = findNode(m_SelectedIndex);
                 if (!n)
                     return 0;
                 Remove(n);
                 m_SelectedIndex = -1;
-                GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
+                GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
             }
         }
-        if (classMsg == IDCMP_GADGETUP && gad->GadgetID == 1004) // Clear
+        if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_CLEAR*1000) // Clear
         {
-            GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
+            GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
             clearList();
-            GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
+            GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
         }
     }
     return -1;
 }
 
+void PlaylistWindow::CleanupGUI()
+{
+    close();
+    clearList();
+}
+
+/// @brief Closes only the window
+void PlaylistWindow::close()
+{
+    m_opened = false;
+    if (m_Window)
+    {
+        CloseWindow(m_Window);
+        m_Window = NULL;
+    }
+    if (m_GadgetList)
+    {
+        FreeGadgets(m_GadgetList);
+        m_GadgetList = NULL;
+    }
+    if (m_VisInfo)
+    {
+        FreeVisualInfo(m_VisInfo);
+        m_VisInfo = NULL;
+    }
+}
+
+void PlaylistWindow::open()
+{
+    if (!m_Window)
+        SetupGUI(); // Hier OpenWindow und CreateGadgets
+    else {
+        WindowToFront(m_Window);
+        ActivateWindow(m_Window);
+    }
+}
+
+void PlaylistWindow::addEntry(std::string name, std::string fullPath)
+{
+    //letzten Index ziehen
+    int nextIndex = 0;
+    struct SongNode *lastNode = (struct SongNode *)m_SongList.lh_TailPred;
+    if (lastNode->node.ln_Pred)
+        nextIndex = lastNode->OriginalIndex + 1;
+
+    SongNode *sn = new SongNode;
+    strncpy(sn->name, name.c_str(), sizeof(sn->name) - 1);
+    sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
+    sn->node.ln_Name = sn->name;
+    sn->OriginalIndex = nextIndex;
+    strncpy(sn->path, fullPath.c_str(), 255);
+    sn->path[255] = '\0';
+
+    AddTail(&m_SongList, (struct Node *)sn);
+
+    if (m_Window && m_Gads[PLAYLIST_LIST])
+    {
+        GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)-1, TAG_DONE);
+        GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL,
+                          GTLV_Labels, (IPTR)&m_SongList,
+                          GTLV_ShowSelected, NULL,
+                          TAG_DONE);
+    }
+}
+
 void PlaylistWindow::PlayNext()
 {
-    if(!m_playlistInUse)
+    if (!m_playlistInUse)
         return;
 
     int count = 0;
@@ -301,48 +335,20 @@ void PlaylistWindow::PlayNext()
     SongNode *sn = (SongNode *)node;
     strncpy(selectedPath, sn->path, 255);
 
-    if (m_Window && m_Gads[1])
+    if (m_Window && m_Gads[PLAYLIST_LIST])
     {
-        GT_SetGadgetAttrs(m_Gads[1], m_Window, NULL,
+        GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL,
                           GTLV_Labels, (IPTR)&m_SongList,
                           GTLV_ShowSelected, (long unsigned int)m_SelectedIndex,
                           TAG_DONE);
     }
 }
 
-std::string PlaylistWindow::openFileRequest()
-{
-    std::string fullPath = "";
-    struct FileRequester *fr = (struct FileRequester *)AllocAslRequest(ASL_FileRequest, NULL);
-    if (fr)
-    {
-        if (AslRequestTags(fr,
-                           ASLFR_TitleText, (Tag) "Datei auswählen...",
-                           ASLFR_InitialDrawer, (Tag) "RAM:",
-                           ASLFR_DoPatterns, TRUE,                                  // Aktiviert das Pattern-Feld
-                           ASLFR_InitialPattern, (Tag) "#?.(aac|m4a|flac|mp3|ogg|m3u)", // Das eigentliche Pattern
-                           TAG_DONE))
-        {
-            std::string drawer = (char *)fr->fr_Drawer;
-            std::string file = (char *)fr->fr_File;
-
-            // Pfad-Logik (Prüfen ob Drawer mit '/' oder ':' endet)
-            fullPath = drawer;
-            if (!fullPath.empty())
-            {
-                char lastChar = fullPath[fullPath.length() - 1];
-                if (lastChar != ':' && lastChar != '/')
-                    fullPath += "/";
-            }
-            fullPath += file;
-        }
-        FreeAslRequest(fr);
-    }
-    return fullPath;
-}
-
 void PlaylistWindow::clearList()
 {
+    if (m_Window && m_Gads[PLAYLIST_LIST])
+        GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
+
     struct Node *n;
     while ((n = RemHead(&m_SongList)))
     {
@@ -351,6 +357,15 @@ void PlaylistWindow::clearList()
             sn->node.ln_Name = NULL;
         delete sn;
     }
+    while ((n = RemHead(&m_HiddenList)))
+    {
+        SongNode *sn = (SongNode *)n;
+        if (sn->node.ln_Name)
+            sn->node.ln_Name = NULL;
+        delete sn;
+    }
+    NewList(&m_SongList);
+    NewList(&m_HiddenList);
 }
 
 Node *PlaylistWindow::findNode(int index)
@@ -370,7 +385,7 @@ Node *PlaylistWindow::findNode(int index)
 
 bool PlaylistWindow::getLine(BPTR file, std::string &line)
 {
-    line="";
+    line = "";
     char c;
     while (Read(file, &c, 1) > 0)
     {
@@ -413,4 +428,66 @@ void PlaylistWindow::parsePlaylist(const char *filename)
         }
         Close(file);
     }
+}
+
+void PlaylistWindow::filter(const char *searchCrit)
+{
+    struct SongNode *node;
+    struct List tmpList;
+    NewList(&tmpList); // Temporärer Container
+
+    GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
+
+    while ((node = (struct SongNode *)RemHead(&m_SongList)))   AddTail(&tmpList, (struct Node *)node);
+    while ((node = (struct SongNode *)RemHead(&m_HiddenList))) AddTail(&tmpList, (struct Node *)node);
+
+    bool isSearchEmpty = (!searchCrit || searchCrit[0] == '\0');
+    while ((node = (struct SongNode *)RemHead(&tmpList)))
+    {
+        bool visible = isSearchEmpty ? TRUE : containsString(node->name, searchCrit);
+        node->Visible = visible;
+
+        if (visible)
+            AddTail(&m_SongList, (struct Node *)node);
+        else
+            AddTail(&m_HiddenList, (struct Node *)node);
+    }
+    GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
+}
+
+void PlaylistWindow::sortPlaylist()
+{
+    struct SongNode *node;
+    BOOL swapped;
+
+    if (!m_SongList.lh_Head->ln_Succ->ln_Succ) return;
+
+    do {
+        swapped = FALSE;
+        node = (struct SongNode *)m_SongList.lh_Head;
+
+        // Solange ein "echter" Nachfolger da ist
+        while (node->node.ln_Succ->ln_Succ)
+        {
+            struct SongNode *nextNode = (struct SongNode *)node->node.ln_Succ;
+
+            if (node->OriginalIndex > nextNode->OriginalIndex)
+            {
+                Remove((struct Node *)nextNode);
+                Insert((struct List *)&m_SongList, (struct Node *)nextNode, node->node.ln_Pred);
+                swapped = TRUE;
+            }
+            else
+                node = nextNode;
+        }
+    } while (swapped);
+}
+
+void PlaylistWindow::showAll()
+{
+    filter(""); 
+    sortPlaylist();
+    GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, 
+        GTLV_Labels, (IPTR)&m_SongList, 
+        TAG_DONE);
 }
