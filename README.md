@@ -41,3 +41,5 @@ if you are using ADE and the old gcc2.9 you might need the patched ahi.h proto, 
 [FAAD](https://aminet.net/package/mus/edit/faad2)
 
 [AmiSSL](https://github.com/jens-maus/amissl)
+
+[Arrow Classic Rock](https://www.arrow.nl/)

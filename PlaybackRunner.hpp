@@ -50,7 +50,7 @@ class PlaybackRunner
         AudioStream* GetStream() { return m_stream; }
 
         //Signalling
-        ULONG GetSignal() { return m_songEndSignal;}
+        ULONG GetSignal() { return 1L << m_songEndSignal;}
         ULONG GetMask() { return m_songEndMask;}
 
         //m_PlayerStates

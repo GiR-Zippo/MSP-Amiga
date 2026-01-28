@@ -29,28 +29,26 @@ int main()
     bool running = true;
     while (running)
     {
+        // hier hin, da singals nicht komplett da sind, ja aich schaue zu dir PlaylistWindow
         ULONG windowSig = MainUi::getInstance().GetWinSignal();
         ULONG pWindowSig = PlaylistWindow::getInstance().GetWinSignal();
         ULONG pPlaybackSig = PlaybackRunner::getInstance().GetSignal();
 
         ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig);
-        if ((signals & pWindowSig) || (signals & PlaybackRunner::getInstance().GetMask()))
+
+        if (signals & pPlaybackSig)
+        {
+            if (PlaylistWindow::getInstance().GetAllowNextSong())
+                PlaylistWindow::getInstance().PlayNext();
+            else
+                PlaylistWindow::getInstance().SetAllowNextSong();
+        }
+        // PlaybackWindow update
+        if ((signals & pWindowSig) || (signals & pPlaybackSig))
         {
             int16_t response = PlaylistWindow::getInstance().UpdateUi();
-            // Spiel unser Lied
-            if (signals & PlaybackRunner::getInstance().GetMask() && response == -1)
-            {
-                printf("Signal empfangen: Song zu Ende!\n");
-                PlaylistWindow::getInstance().PlayNext();
-                response = 0;
-            }
-
-            if (response == 0) // 0 == neuer Track ausgewählt
-            {
-                PlaybackRunner::getInstance().StartPlaybackTask(PlaylistWindow::getInstance().selectedPath);
-            }
         }
-
+        // MainUi update
         if (signals & windowSig)
         {
             if (!MainUi::getInstance().UpdateUi())
@@ -68,5 +66,5 @@ int main()
     MainUi::getInstance().CleanupGUI();
     printf("Cleabup done\n");
 
-return 0;
+    return 0;
 }

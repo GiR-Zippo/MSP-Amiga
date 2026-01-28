@@ -58,7 +58,7 @@ extern "C"
 /* -------------------------------------------------------------------------- */
 /* Implementations                                                            */
 /* -------------------------------------------------------------------------- */
-// #define DEBUG
+//#define DEBUG
 #ifdef DR_AAC_IMPLEMENTATION
 #define AAC_READ_SIZE 4096
 
@@ -396,6 +396,8 @@ size_t dr_aac_read_s16(dr_aac *pAac, size_t samplesToRead, short *pOutput)
         }
         else
         {
+            if (pAac->m4aframe.currentSampleIndex == pAac->m4aframe.sampleCount)
+                return 0;
             unsigned long nextFrameSize = pAac->m4aframe.sampleSizes[pAac->m4aframe.currentSampleIndex++];
             if (bytesInCache < nextFrameSize)
             {

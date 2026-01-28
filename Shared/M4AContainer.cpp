@@ -112,7 +112,7 @@ void M4AReader::parseTrack(FILE *f, long trakEnd, M4AAudioTrackInfo &info)
             fseek(f, 8, SEEK_CUR); // Skip version/flags (4) und entry_count (4)
 
             // Hier beginnt der erste Sample-Eintrag (z.B. 'mp4a')
-            uint32_t entrySize = read32BE(f);
+            /*uint32_t entrySize =*/ read32BE(f);
             char codecName[5] = {0};
             fread(codecName, 1, 4, f);
             //info.codec = codecName;

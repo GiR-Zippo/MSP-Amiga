@@ -52,10 +52,11 @@ class PlaylistWindow
         ULONG GetWinSignal() { return 1L << m_Window->UserPort->mp_SigBit; }
         bool IsOpen() { return m_opened; }
         void SetUsePlaylist(bool yes) { m_playlistInUse = yes; }
-        void PlayNext();
+        bool GetAllowNextSong() { return m_allowNextSong; }
+        void SetAllowNextSong() { m_allowNextSong = true; }
+        void PlayNext(bool noadvance = false);
         // Callback oder Variable für den gewählten Song
         char selectedPath[256];
-        bool songSelected;
 
     private:
         PlaylistWindow();
@@ -74,12 +75,15 @@ class PlaylistWindow
         struct MsgPort *m_Port;
         void *m_VisInfo;
         struct Gadget *m_GadgetList;
+        struct Gadget *m_Gads[PLAYLIST_MAX];
+        
         struct List m_SongList;   // Die sichtbare SongListe
         struct List m_HiddenList; // Die Shadowliste
-        struct Gadget *m_Gads[PLAYLIST_MAX];
         int32_t m_SelectedIndex;
         bool m_opened;
         bool m_playlistInUse;
+        bool m_allowNextSong;
+        bool m_firstTime;
         uint8_t m_playlistMode;
 
         // SuFu

@@ -111,7 +111,6 @@ bool MainUi::SetupGUI()
 
     GT_RefreshWindow(m_Window, NULL);
     drawVideoPlaceholder();
-//drawVolumeLevel(30);
     return true;
 }
 

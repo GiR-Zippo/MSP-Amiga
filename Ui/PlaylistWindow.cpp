@@ -1,6 +1,7 @@
 #include "PlaylistWindow.hpp"
 #include "../Shared/Icecast.hpp"
 #include "SharedUiFunctions.hpp"
+#include "PlaybackRunner.hpp"
 
 struct GTMX_SpecialInfo
 {
@@ -47,9 +48,10 @@ BOOL DoubleCheck(ULONG s1, ULONG m1, ULONG s2, ULONG m2)
 PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
 {
     NewList(&m_SongList); // Exec-Liste initialisieren
-    songSelected = false;
+    m_firstTime = true;
     m_opened = false;
     m_playlistInUse = false;
+    m_allowNextSong = false;
     m_playlistMode = 0; // 0 = PlaylistMode
     m_SelectedIndex = -1;
     m_lastClickSeconds = 0;
@@ -200,15 +202,16 @@ int16_t PlaylistWindow::UpdateUi()
             int32_t selectedIndex = msgCode;
             if (DoubleCheck(m_lastClickSeconds, m_lastClickMicros, msg->Seconds, msg->Micros))
             {
-                Node *n = findNode(selectedIndex);
-                if (!n)
-                    return -1;
                 SetUsePlaylist(true);
+                if (m_firstTime)
+                {
+                    m_firstTime = false;
+                    m_allowNextSong = true;
+                }
+                else
+                    m_allowNextSong = false;
                 m_SelectedIndex = selectedIndex;
-                SongNode *sn = (SongNode *)n;
-                strncpy(selectedPath, sn->path, 255);
-                printf("%s\n", selectedPath);
-                return 0;
+                PlayNext(true);
             }
             m_lastClickSeconds = msg->Seconds;
             m_lastClickMicros = msg->Micros;
@@ -312,7 +315,7 @@ void PlaylistWindow::addEntry(std::string name, std::string fullPath)
     }
 }
 
-void PlaylistWindow::PlayNext()
+void PlaylistWindow::PlayNext(bool noadvance)
 {
     if (!m_playlistInUse)
         return;
@@ -323,10 +326,13 @@ void PlaylistWindow::PlayNext()
     for (node = m_SongList.lh_Head; node->ln_Succ; node = node->ln_Succ)
         count++;
 
-    if (m_SelectedIndex > count)
-        m_SelectedIndex = 0;
-    else
-        m_SelectedIndex++;
+    if (!noadvance)
+    {
+        if (m_SelectedIndex > count)
+            m_SelectedIndex = 0;
+        else
+            m_SelectedIndex++;
+    }
 
     node = findNode(m_SelectedIndex);
     if (!node)
@@ -342,6 +348,7 @@ void PlaylistWindow::PlayNext()
                           GTLV_ShowSelected, (long unsigned int)m_SelectedIndex,
                           TAG_DONE);
     }
+    PlaybackRunner::getInstance().StartPlaybackTask(PlaylistWindow::getInstance().selectedPath);
 }
 
 void PlaylistWindow::clearList()

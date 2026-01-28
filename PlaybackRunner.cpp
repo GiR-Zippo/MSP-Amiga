@@ -130,11 +130,10 @@ void PlaybackRunner::PlayerTaskFunc()
         if (!pb || !pb->stream)
             break;
 
+        // die Laustärke hier setzen
         if (playback->GetVolume() != pb->volumeLevel)
-        {
             playback->SetVolume(pb->volumeLevel);
-            printf("%ul\n", pb->volumeLevel);
-        }
+
         // wir sollen spielen, sind nicht initialisiert?
         if (PlaybackRunner::getInstance().hasFlag(PFLAG_PLAYING) && !_audioInitDone)
         {
@@ -168,8 +167,8 @@ void PlaybackRunner::PlayerTaskFunc()
                 playback->Stop();
                 pb->stream->seek(0);
                 printf("Task: Song beendet.\n");
-                // gib mal der Playlist bescheid
-                Signal(pb->mainTask, pb->songEndMask);
+                //raus hier
+                break;
             }
             _updateWait = false;
         }
@@ -179,7 +178,10 @@ void PlaybackRunner::PlayerTaskFunc()
 
     // und weg damit
     delete playback;
-    delete pb;
     PlaybackRunner::getInstance().clearFlags();
+
+    // gib mal der Playlist bescheid
+    Signal(pb->mainTask, pb->songEndMask);
+    delete pb;
     printf("Task: Beendet.\n");
 }

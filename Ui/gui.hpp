@@ -47,7 +47,6 @@ class MainUi
         MainUi(const MainUi&);
         MainUi& operator=(const MainUi&);
 
-        void sendMessage();
         void drawVideoPlaceholder();
         void drawVolumeLevel(long level);
         void formatTimeOldschool(char* b, uint32_t s);
