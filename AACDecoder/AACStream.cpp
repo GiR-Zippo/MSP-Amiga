@@ -85,9 +85,10 @@ int AACStream::readSamples(short *targetBuffer, int samplesToRead)
 
 int AACStream::decodeFrame(unsigned char* inBuffer, size_t inSize, size_t *bytesConsumed, short *pOutput, size_t maxSamples)
 {
+    int samples = dr_aac_read_frame_s16(m_aac, inBuffer, inSize, bytesConsumed, pOutput, maxSamples);
     m_sampleRate = m_aac->samplerate;
     m_channels = m_aac->channels;
-    return dr_aac_read_frame_s16(m_aac, inBuffer, inSize, bytesConsumed, pOutput, maxSamples);
+    return samples;
 }
 
 uint32_t AACStream::getCurrentSeconds() const

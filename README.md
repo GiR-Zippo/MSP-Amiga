@@ -32,6 +32,8 @@ Be awe this will take some time, grab a coffee and compile
 ## ADE
 if you are using ADE and the old gcc2.9 you might need the patched ahi.h proto, a patched bsdsocket.h and AmiSSL headers.
 
+Atm I can't get gcc2.9 to work properly with AAC+ decoding, it sounds weird, with the crosscompiler everything is fine.
+
 ## Uses:
 [MiniMP3](https://github.com/lieff/minimp3)
 

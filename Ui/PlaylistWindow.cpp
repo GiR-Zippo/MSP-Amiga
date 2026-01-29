@@ -50,6 +50,7 @@ BOOL DoubleCheck(ULONG s1, ULONG m1, ULONG s2, ULONG m2)
 PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
 {
     NewList(&m_SongList); // Exec-Liste initialisieren
+    NewList(&m_HiddenList);
     m_firstTime = true;
     m_opened = false;
     m_playlistInUse = false;

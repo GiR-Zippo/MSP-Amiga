@@ -540,7 +540,6 @@ size_t dr_aac_read_frame_s16(dr_aac *pAac, unsigned char *inBuffer, size_t inSiz
     }
     else
     {
-        printf("Nope\n");
         // Wenn selbst das fehlschlägt, ist das Frame-Datenpaket korrupt (z.B. dVHS Müll)
         *bytesConsumed = 1;
         return 0;
