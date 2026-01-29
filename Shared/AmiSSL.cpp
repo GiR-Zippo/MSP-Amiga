@@ -360,3 +360,8 @@ bool AmiSSL::Fetch(const char *arg)
     CleanupAll();
     return (bytes >= 0);
 }
+
+struct Library* AmiSSL::GetSocketBase()
+{
+    return SocketBase;
+}

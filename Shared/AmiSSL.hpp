@@ -26,6 +26,8 @@ class AmiSSL
         int ConnectToServer(char *, short, char *, short);
         static int verify_cb(int preverify_ok, X509_STORE_CTX *ctx);
         SSL* GetSSL() { return ssl;}
+        int GetSocket() { return sock; }
+        struct Library* GetSocketBase();
     private:
         SSL_CTX *ctx;;
         SSL *ssl;

@@ -5,8 +5,10 @@
 #include "../Shared/AudioQueue.hpp"
 #include "AudioStream.hpp"
 
+class AmiSSL;
 class NetworkStream : public AudioStream
 {
+    friend class StreamRunner;
     public:
         NetworkStream();
         ~NetworkStream();
@@ -46,7 +48,7 @@ class NetworkStream : public AudioStream
         {
             //wenn der Stream terminiert ist, dann stoppen wir auch das audio
             //einfach 0 zurück und weg isser
-            if (m_terminate)
+            if (m_stop)
                 return 0;
 
             //sind noch nicht soweit, also sound of silence
@@ -56,7 +58,7 @@ class NetworkStream : public AudioStream
                 return samplesToRead / 2;
             }
 
-            unsigned int read = m_q->get(buffer, samplesToRead);
+            unsigned int read =m_q->get(buffer, samplesToRead);
             //mit 0 auffüllen, für den Fall der Faelle
             if (read < (unsigned int)samplesToRead)
                 memset(buffer + read, 0, (samplesToRead - read) * sizeof(short));
@@ -65,8 +67,6 @@ class NetworkStream : public AudioStream
 
     private:
         static void taskEntry(); // Der Amiga-Prozess-Einstieg
-        void StreamLoop();       // Die Netzwerk-Logik
-void StreamLoopAAC();       // Die Netzwerk-Logik
         void closeStream();
         void decodeUrlData(std::string url);
         bool testConnection();
@@ -84,6 +84,7 @@ void StreamLoopAAC();       // Die Netzwerk-Logik
         uint8_t         m_codec;
         volatile bool   m_connected;
         volatile bool   m_terminate;
+        volatile bool   m_stop;
         volatile uint32_t m_bytesRead;
         struct Process* m_workerProc;
         AudioQueue*     m_q;

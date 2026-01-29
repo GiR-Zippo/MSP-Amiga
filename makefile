@@ -3,7 +3,7 @@ TARGET    = demo
 BUILD_DIR = build
 
 #Set to 1 when using ADE
-USE_ADE = 0
+USE_ADE = 1
 
 ifeq ($(USE_ADE), 0)
     CXX = m68k-amigaos-g++
@@ -27,7 +27,7 @@ CXXFLAGS     = $(COMMON_FLAGS) -std=c++11
 # C spezifisch (inkl. Vorbis Big Endian Fix) und Linker Flags
 ifeq ($(USE_ADE), 0)
     CFLAGS  = $(COMMON_FLAGS) -DSTB_VORBIS_BIG_ENDIAN -DDR_MP3_IMPLEMENTATION -DDR_FLAC_BIG_ENDIAN
-    LDFLAGS = -noixemul -Wl,-static
+    LDFLAGS = -noixemul -Wl,-static -Wl,--gc-sections
 else
     CFLAGS  = $(COMMON_FLAGS) -DSTB_VORBIS_BIG_ENDIAN -DDR_MP3_IMPLEMENTATION -DDR_FLAC_BIG_ENDIAN 
     LDFLAGS = -noixemul -Wl,-static -fvtable-gc -fdata-sections -ffunction-section

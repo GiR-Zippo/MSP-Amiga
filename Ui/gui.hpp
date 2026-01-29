@@ -26,9 +26,10 @@ struct PlayerGadgetDef {
 class MainUi
 {
     public:
-        static MainUi& getInstance()
+        static MainUi* getInstance()
         {
-            static MainUi instance;
+            if (instance == NULL)
+                instance = new MainUi();
             return instance;
         }
 
@@ -43,9 +44,11 @@ class MainUi
         void SetVolume(uint16_t vol) {m_VolumeLevel = vol;}
         uint16_t GetVolume() {return m_VolumeLevel;}
     private:
-        MainUi();
-        MainUi(const MainUi&);
-        MainUi& operator=(const MainUi&);
+        static MainUi* instance;
+        MainUi(); // Private constructor
+        MainUi(const MainUi&); // Prevent copy
+        MainUi& operator=(const MainUi&); // Prevent assignment
+
 
         void drawVideoPlaceholder();
         void drawVolumeLevel(long level);

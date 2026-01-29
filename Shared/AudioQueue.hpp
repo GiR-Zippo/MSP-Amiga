@@ -36,7 +36,7 @@ public:
     }
 
     /// @brief Wie viele Samples liegen bereit?
-    unsigned int getAvailable() const
+    unsigned int getAvailable() const volatile
     {
         unsigned int r = m_readPtr;
         unsigned int w = m_writePtr;

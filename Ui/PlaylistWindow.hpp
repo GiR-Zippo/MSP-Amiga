@@ -35,11 +35,13 @@ enum PlaylistGads
 class PlaylistWindow
 {
     public:
-        static PlaylistWindow& getInstance()
+        static PlaylistWindow* getInstance()
         {
-            static PlaylistWindow instance;
+            if (instance == NULL)
+                instance = new PlaylistWindow();
             return instance;
         }
+
         bool SetupGUI();
         int16_t UpdateUi();
         void CleanupGUI();
@@ -59,9 +61,10 @@ class PlaylistWindow
         char selectedPath[256];
 
     private:
-        PlaylistWindow();
-        PlaylistWindow(const PlaylistWindow&);
-        PlaylistWindow& operator=(const PlaylistWindow&);
+        static PlaylistWindow* instance;
+        PlaylistWindow(); // Private constructor
+        PlaylistWindow(const PlaylistWindow&); // Prevent copy
+        PlaylistWindow& operator=(const PlaylistWindow&); // Prevent assignment
 
         void clearList();
         struct Node *findNode(int index);

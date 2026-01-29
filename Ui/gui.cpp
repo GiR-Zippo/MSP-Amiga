@@ -3,6 +3,8 @@
 #include "SharedUiFunctions.hpp"
 #include "PlaylistWindow.hpp"
 
+MainUi* MainUi::instance = NULL;
+
 static struct TagItem seekerTags[] = {
     {GTSL_Min, 0}, {GTSL_Max, 100}, {GTSL_Level, 0}, {GA_Immediate, TRUE}, {GA_RelVerify, TRUE}, {TAG_DONE, 0}
 };
@@ -127,13 +129,13 @@ bool MainUi::UpdateUi()
             return false;
         if (msg->Class == IDCMP_INTUITICKS)
         {
-            if (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+            if (PlaybackRunner::getInstance()->hasFlag(PFLAG_INIT_DONE))
             {
-                if (PlaybackRunner::getInstance().hasFlag(PFLAG_PLAYING) &&
-                    !PlaybackRunner::getInstance().hasFlag(PFLAG_SEEK))
+                if (PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING) &&
+                    !PlaybackRunner::getInstance()->hasFlag(PFLAG_SEEK))
                 {
-                    uint32_t currSec = PlaybackRunner::getInstance().GetStream()->getCurrentSeconds();
-                    uint32_t duration = PlaybackRunner::getInstance().GetStream()->getDuration();
+                    uint32_t currSec = PlaybackRunner::getInstance()->GetStream()->getCurrentSeconds();
+                    uint32_t duration = PlaybackRunner::getInstance()->GetStream()->getDuration();
                     if (currSec == 0 || duration == 0)
                         UpdateTimeDisplay(currSec, duration);
                     else
@@ -149,18 +151,18 @@ bool MainUi::UpdateUi()
         {
             if (gad->GadgetID == ID_SEEKER)
             {
-                if (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+                if (PlaybackRunner::getInstance()->hasFlag(PFLAG_INIT_DONE))
                 {
-                    uint32_t seekTime = ((uint32_t)msgCode * PlaybackRunner::getInstance().GetStream()->getDuration()) / 100;
-                    PlaybackRunner::getInstance().GetStream()->seek(seekTime);
-                    PlaybackRunner::getInstance().removeFlag(PFLAG_SEEK);
+                    uint32_t seekTime = ((uint32_t)msgCode * PlaybackRunner::getInstance()->GetStream()->getDuration()) / 100;
+                    PlaybackRunner::getInstance()->GetStream()->seek(seekTime);
+                    PlaybackRunner::getInstance()->removeFlag(PFLAG_SEEK);
                 }
             }
             if (gad->GadgetID == ID_VOLUME)
             {
-                if (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+                if (PlaybackRunner::getInstance()->hasFlag(PFLAG_INIT_DONE))
                 {
-                    PlaybackRunner::getInstance().SetVolume(msgCode);
+                    PlaybackRunner::getInstance()->SetVolume(msgCode);
                     SetVolume(msgCode);
                 }
             }
@@ -170,9 +172,9 @@ bool MainUi::UpdateUi()
         {
             if (gad->GadgetID == ID_SEEKER)
             {
-                if (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+                if (PlaybackRunner::getInstance()->hasFlag(PFLAG_INIT_DONE))
                 {
-                    uint32_t duration = PlaybackRunner::getInstance().GetStream()->getDuration();
+                    uint32_t duration = PlaybackRunner::getInstance()->GetStream()->getDuration();
                     uint32_t seekTime = (msgCode * duration) / 100;
                     UpdateTimeDisplay(seekTime, duration);
                 }
@@ -181,7 +183,7 @@ bool MainUi::UpdateUi()
         if (msg->Class == IDCMP_GADGETDOWN)
         {
             if (gad->GadgetID == ID_SEEKER)
-                PlaybackRunner::getInstance().setFlag(PFLAG_SEEK);
+                PlaybackRunner::getInstance()->setFlag(PFLAG_SEEK);
         }
 
         if (msg->Class == IDCMP_GADGETUP)
@@ -189,28 +191,28 @@ bool MainUi::UpdateUi()
             struct Gadget *gad = (struct Gadget *)msg->IAddress;
             if (gad->GadgetID == ID_PLAY)
             {
-                PlaybackRunner::getInstance().setFlag(PFLAG_PLAYING);
-                PlaybackRunner::getInstance().removeFlag(PFLAG_PAUSE);
+                PlaybackRunner::getInstance()->setFlag(PFLAG_PLAYING);
+                PlaybackRunner::getInstance()->removeFlag(PFLAG_PAUSE);
             }
             else if (gad->GadgetID == ID_PAUSE)
-                PlaybackRunner::getInstance().toggleFlag(PFLAG_PAUSE);
+                PlaybackRunner::getInstance()->toggleFlag(PFLAG_PAUSE);
             else if (gad->GadgetID == ID_STOP)
             {
-                PlaybackRunner::getInstance().setFlag(PFLAG_STOP);
-                PlaybackRunner::getInstance().removeFlag(PFLAG_PAUSE);
+                PlaybackRunner::getInstance()->setFlag(PFLAG_STOP);
+                PlaybackRunner::getInstance()->removeFlag(PFLAG_PAUSE);
             }
             else if (gad->GadgetID == ID_OPEN)
             {
                 // keine playlist mehr
-                PlaylistWindow::getInstance().SetUsePlaylist(false);
-                PlaybackRunner::getInstance().StartPlaybackTask(SharedUiFunctions::OpenFileRequest("#?.(aac|m4a|flac|mp3|ogg)"));
+                PlaylistWindow::getInstance()->SetUsePlaylist(false);
+                PlaybackRunner::getInstance()->StartPlaybackTask(SharedUiFunctions::OpenFileRequest("#?.(aac|m4a|flac|mp3|ogg)"));
             }
             else if (gad->GadgetID == ID_PLAYLIST)
             {
-                if (PlaylistWindow::getInstance().IsOpen())
-                    PlaylistWindow::getInstance().close();
+                if (PlaylistWindow::getInstance()->IsOpen())
+                    PlaylistWindow::getInstance()->close();
                 else
-                    PlaylistWindow::getInstance().open();
+                    PlaylistWindow::getInstance()->open();
             }
         }
     }

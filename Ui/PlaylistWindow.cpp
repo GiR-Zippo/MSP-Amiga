@@ -3,6 +3,8 @@
 #include "SharedUiFunctions.hpp"
 #include "PlaybackRunner.hpp"
 
+PlaylistWindow* PlaylistWindow::instance = NULL;
+
 struct GTMX_SpecialInfo
 {
     uint16_t si_Active;
@@ -348,7 +350,7 @@ void PlaylistWindow::PlayNext(bool noadvance)
                           GTLV_ShowSelected, (long unsigned int)m_SelectedIndex,
                           TAG_DONE);
     }
-    PlaybackRunner::getInstance().StartPlaybackTask(PlaylistWindow::getInstance().selectedPath);
+    PlaybackRunner::getInstance()->StartPlaybackTask(PlaylistWindow::getInstance()->selectedPath);
 }
 
 void PlaylistWindow::clearList()

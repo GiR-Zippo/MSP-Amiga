@@ -9,6 +9,8 @@
 
 #include "Ui/gui.hpp"
 
+PlaybackRunner* PlaybackRunner::instance = NULL;
+
 PlaybackRunner::PlaybackRunner()
 {
     m_PlayerState = PFLAG_NON_INIT;
@@ -95,7 +97,7 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
             g_args->songEndMask = m_songEndMask;
             g_args->mainTask = FindTask(NULL);
 
-            g_args->volumeLevel = ((MainUi::getInstance().GetVolume() * 0x10000) / 100) - 1;
+            g_args->volumeLevel = ((MainUi::getInstance()->GetVolume() * 0x10000) / 100) - 1;
             m_playerProc = (struct Process *)CreateNewProc(playerTags);
             if (m_playerProc)
                 m_playerProc->pr_Task.tc_UserData = (APTR)g_args;
@@ -124,7 +126,7 @@ void PlaybackRunner::PlayerTaskFunc()
 
     // create the AHIPlayback in this scope
     AHIPlayback *playback = new AHIPlayback(pb->stream);
-    while (PlaybackRunner::getInstance().hasFlag(PFLAG_INIT_DONE))
+    while (PlaybackRunner::getInstance()->hasFlag(PFLAG_INIT_DONE))
     {
         // sanitycheck
         if (!pb || !pb->stream)
@@ -135,19 +137,19 @@ void PlaybackRunner::PlayerTaskFunc()
             playback->SetVolume(pb->volumeLevel);
 
         // wir sollen spielen, sind nicht initialisiert?
-        if (PlaybackRunner::getInstance().hasFlag(PFLAG_PLAYING) && !_audioInitDone)
+        if (PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING) && !_audioInitDone)
         {
             playback->Init();
             _audioInitDone = true;
-            PlaybackRunner::getInstance().removeFlag(PFLAG_STOP);
+            PlaybackRunner::getInstance()->removeFlag(PFLAG_STOP);
         }
 
         // wir sollen stoppen
-        if (PlaybackRunner::getInstance().hasFlag(PFLAG_STOP))
+        if (PlaybackRunner::getInstance()->hasFlag(PFLAG_STOP))
         {
-            if (!_updateWait && PlaybackRunner::getInstance().hasFlag(PFLAG_PLAYING))
+            if (!_updateWait && PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING))
             {
-                PlaybackRunner::getInstance().removeFlag(PFLAG_PLAYING);
+                PlaybackRunner::getInstance()->removeFlag(PFLAG_PLAYING);
                 playback->Stop();
                 pb->stream->seek(0);
                 _audioInitDone = false;
@@ -155,15 +157,15 @@ void PlaybackRunner::PlayerTaskFunc()
         }
 
         // die Dudelroutine
-        if (PlaybackRunner::getInstance().hasFlag(PFLAG_PLAYING) && 
-            !PlaybackRunner::getInstance().hasFlag(PFLAG_SEEK) && 
-            !PlaybackRunner::getInstance().hasFlag(PFLAG_PAUSE))
+        if (PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING) && 
+            !PlaybackRunner::getInstance()->hasFlag(PFLAG_SEEK) && 
+            !PlaybackRunner::getInstance()->hasFlag(PFLAG_PAUSE))
         {
             _updateWait = true;
             if (!playback->Update())
             {
-                PlaybackRunner::getInstance().removeFlag(PFLAG_PLAYING);
-                PlaybackRunner::getInstance().setFlag(PFLAG_STOP);
+                PlaybackRunner::getInstance()->removeFlag(PFLAG_PLAYING);
+                PlaybackRunner::getInstance()->setFlag(PFLAG_STOP);
                 playback->Stop();
                 pb->stream->seek(0);
                 printf("Task: Song beendet.\n");
@@ -178,7 +180,7 @@ void PlaybackRunner::PlayerTaskFunc()
 
     // und weg damit
     delete playback;
-    PlaybackRunner::getInstance().clearFlags();
+    PlaybackRunner::getInstance()->clearFlags();
 
     // gib mal der Playlist bescheid
     Signal(pb->mainTask, pb->songEndMask);

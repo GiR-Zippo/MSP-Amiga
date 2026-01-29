@@ -27,9 +27,10 @@ struct PlayerArgs
 class PlaybackRunner
 {
     public:
-        static PlaybackRunner& getInstance()
+        static PlaybackRunner* getInstance()
         {
-            static PlaybackRunner instance;
+            if (instance == NULL)
+                instance = new PlaybackRunner();
             return instance;
         }
 
@@ -61,9 +62,10 @@ class PlaybackRunner
         void clearFlags() { m_PlayerState = 0; }
 
     private:
-        PlaybackRunner();
-        PlaybackRunner(const PlaybackRunner&);
-        PlaybackRunner& operator=(const PlaybackRunner&);
+        static PlaybackRunner* instance;
+        PlaybackRunner(); // Private constructor
+        PlaybackRunner(const PlaybackRunner&); // Prevent copy
+        PlaybackRunner& operator=(const PlaybackRunner&); // Prevent assignment
 
         struct Process *m_playerProc;
         AudioStream    *m_stream;
