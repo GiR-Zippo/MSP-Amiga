@@ -1,0 +1,79 @@
+name: Amiga Build CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: amigadev/crosstools:m68k-amigaos
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Fetch and Install AmiSSL Headers
+      run: |
+        # 1. URL holen
+        SDK_URL=$(curl -s https://api.github.com/repos/jens-maus/amissl/releases/latest \
+          | grep "browser_download_url.*SDK.lha" \
+          | cut -d '"' -f 4)
+        
+        echo "Lade SDK: $SDK_URL"
+        curl -L "$SDK_URL" -o /tmp/amissl_sdk.lha
+        
+        mkdir -p /tmp/amissl_include
+        cd /tmp/amissl_include
+        lha xq /tmp/amissl_sdk.lha
+        
+        REAL_INC=$(find . -path "*/Developer/include" -type d | head -n 1)
+        
+        echo "Gefundener Quell-Pfad: $REAL_INC"
+
+        if [ -z "$REAL_INC" ]; then
+          echo "Fehler: AmiSSL Header-Ordner nicht gefunden!"
+          find . -maxdepth 5
+          exit 1
+        fi
+
+        DEST="/opt/m68k-amigaos/m68k-amigaos/include"
+        sudo mkdir -p "$DEST"
+        sudo cp -r "$REAL_INC"/. "$DEST/"
+        ls -F "$DEST" | grep -E 'AmiSSL|proto|libraries|inline'
+        
+        echo "AmiSSL Header erfolgreich installiert."
+    - name: Compile Project
+      run: |
+        make
+
+    - name: Prepare and Package
+      run: |
+        mkdir -p release_files
+        cp demo release_files/
+        # Falls vorhanden, Icons mitkopieren:
+        # cp demo.info release_files/
+        zip -j MSP_latest.zip ./release_files/*
+        cd release_files && lha ao ../MSP_latest.lha *
+
+    - name: Create or Update Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: "MSP Build (Latest)"
+        # Holt die Commit-Nachricht des Pushes als Beschreibung
+        body: |
+          **Changes:**
+          ${{ github.event.head_commit.message }}
+          
+          _Build Zeit: ${{ github.event.head_commit.timestamp }}_
+        draft: false
+        prerelease: false
+        files: |
+          MSP_latest.zip
+          MSP_latest.lha
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
