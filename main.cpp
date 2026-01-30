@@ -12,8 +12,8 @@ int main()
     // Gott weiß was AmiSSL macht, aber fummelt am Stack rum
     // Also einmalig Init hier
     AmiSSL *ssl = new AmiSSL();
-    ssl->Init();
-    ssl->Cleanup();
+    if (ssl->Init())
+        ssl->Cleanup();
     delete ssl;
 
     if (!MainUi::getInstance()->SetupGUI())

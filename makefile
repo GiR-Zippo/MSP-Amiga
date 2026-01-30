@@ -3,7 +3,7 @@ TARGET    = demo
 BUILD_DIR = build
 
 #Set to 1 when using ADE
-USE_ADE = 1
+USE_ADE = 0
 
 ifeq ($(USE_ADE), 0)
     CXX = m68k-amigaos-g++
@@ -22,7 +22,7 @@ else
 endif
 
 # C++ spezifisch
-CXXFLAGS     = $(COMMON_FLAGS) -std=c++11
+CXXFLAGS     = $(COMMON_FLAGS) -std=c++11 -fpermissive
 
 # C spezifisch (inkl. Vorbis Big Endian Fix) und Linker Flags
 ifeq ($(USE_ADE), 0)
