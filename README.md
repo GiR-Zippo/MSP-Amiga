@@ -9,7 +9,7 @@ WebStreams: HTTP/HTTPS MP3 and AAC+ only
 ## Requires:
 
 ### System:
-- OS3.1.x
+- OS3.1.x or OS4
 - AHI (uses device_0 @44100kHz)
 - bsdsocket.library (only when webstreams are used)
 - AmiSSL for HTTPS
