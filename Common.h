@@ -69,4 +69,5 @@ extern "C"
 }   
 void stringToLower(std::string& s);
 bool containsString(const char* haystack, const char* needle);
+void UTF8ToAmiga(char *str);
 #endif

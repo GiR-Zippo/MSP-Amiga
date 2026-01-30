@@ -34,15 +34,15 @@ void NetworkStream::decodeUrlData(std::string url)
         strncpy(m_host, url.substr(hostStart, portSep - hostStart).c_str(), 127);
     }
     else
-        // Kein Port im String -> Standardport (hast du oben ja schon gesetzt)
+        // Kein Port im String -> Standardport
         strncpy(m_host, url.substr(hostStart, hostEnd - hostStart).c_str(), 127);
 
     if (slashPos != std::string::npos)
-        strncpy(m_path, url.substr(slashPos).c_str(), 127);
+        strncpy(m_path, url.substr(slashPos).c_str(), 255);
     else
-        strncpy(m_path, "/", 127);
+        strncpy(m_path, "/", 255);
 
-    printf("Connection to: %s %u %s\n", m_host, m_port, m_path);
+    printf("Decoded to: %s %u %s\n", m_host, m_port, m_path);
 }
 
 /// @brief hendles the server response
@@ -50,10 +50,22 @@ void NetworkStream::decodeUrlData(std::string url)
 /// @return true if everything okay
 bool NetworkStream::handleServerResponse(std::string response)
 {
+    printf("%s\n", response.c_str());
     m_codec = 255;
     if (strstr(response.c_str(), "200 OK"))
     {
-        // Pseudocode für den Header-Check
+        //get Icy-MetaData for titleinformation
+        if (strstr(response.c_str(), "icy-metaint:"))
+        {
+            size_t locPos = response.find("icy-metaint:");
+            if (locPos != std::string::npos)
+            {
+                size_t start = locPos + 13;
+                size_t end = response.find("\r\n", start);
+                m_icyInterval = atoi(response.substr(start, end - start).c_str());
+            }
+        }
+        //get codec-type
         if (strstr(response.c_str(), "Content-Type: audio/mpeg"))
         {
             // Es ist MP3

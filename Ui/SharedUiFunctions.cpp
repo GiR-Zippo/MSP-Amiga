@@ -33,3 +33,21 @@ std::string SharedUiFunctions::OpenFileRequest(const char* mask)
     }
     return fullPath;
 }
+
+bool SharedUiFunctions::DoubleCheck(ULONG s1, ULONG m1, ULONG s2, ULONG m2)
+{
+    /* Wenn mehr als 1 Sekunde vergangen ist, ist es sicher kein Doppelklick */
+    if (s2 - s1 > 1)
+        return false;
+
+    /* Wenn genau 1 Sekunde vergangen ist */
+    if (s2 - s1 == 1)
+    {
+        if (m2 + (1000000 - m1) <= 400000)
+            return true;
+        return false;
+    }
+    if (m2 - m1 <= 400000)
+        return true;
+    return false;
+}

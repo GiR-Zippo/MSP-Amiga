@@ -42,7 +42,6 @@ class NetworkStream : public AudioStream
         }
 
         bool IsConnected() const { return m_connected; }
-        uint32_t GetBytesRead() const { return m_bytesRead; }
 
         int readSamples(short *buffer, int samplesToRead)
         {
@@ -78,16 +77,20 @@ class NetworkStream : public AudioStream
 
         int             m_socket;
         char            m_host[128];
-        char            m_path[128];
+        char            m_path[256];
         uint16_t        m_port;
         bool            m_isHTTP;
         uint8_t         m_codec;
         volatile bool   m_connected;
         volatile bool   m_terminate;
         volatile bool   m_stop;
-        volatile uint32_t m_bytesRead;
         struct Process* m_workerProc;
         AudioQueue*     m_q;
+        //Für metainfos
+        int             m_icyInterval;
+
+        char     m_title[128];
+        char     m_artist[128];
 };
 
 #endif

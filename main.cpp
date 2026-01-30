@@ -1,7 +1,7 @@
 #include "Common.h"
 #include "Shared/AmiSSL.hpp"
 #include "Ui/gui.hpp"
-#include "Ui/PlaylistWindow.hpp"
+#include "Ui/Playlist/PlaylistWindow.hpp"
 #include "PlaybackRunner.hpp"
 
 /* -------------------------------------------------------------------------- */

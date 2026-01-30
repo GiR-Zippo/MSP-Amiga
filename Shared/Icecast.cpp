@@ -1,6 +1,6 @@
 #include "Common.h"
 #include "Icecast.hpp"
-#include "../Ui/PlaylistWindow.hpp"
+#include "../Ui/Playlist/PlaylistWindow.hpp"
 
 Icecast::Icecast()
 {
@@ -13,7 +13,63 @@ Icecast::~Icecast()
         delete m_amiSSL;
 }
 
-void Icecast::FetchList(List &songList)
+bool Icecast::ExistsInPlaylist(struct List* targetList, const char* searchName)
+{
+    struct Node* node = targetList->lh_Head;
+    while (node->ln_Succ)
+    {
+        if (node->ln_Name && strcmp(node->ln_Name, searchName) == 0)
+        {
+            printf("gefunden %s\n", searchName);
+            return true; // Gefunden!
+        }
+        node = node->ln_Succ;
+    }
+    return false; // Nicht in der Liste
+}
+
+void Icecast::UpdateStationInPlaylist(struct List* targetList, const char* searchName, struct SongNode* newNode, bool preferHttp)
+{
+    struct Node* node = targetList->lh_Head;
+    while (node->ln_Succ)
+    {
+        if (node->ln_Name && strcmp(node->ln_Name, searchName) == 0)
+        {
+            SongNode *sn = (SongNode*)node;
+            if (preferHttp && strstr(sn->path, "https"))
+            {
+                printf("https:\n");
+                newNode->OriginalIndex = sn->OriginalIndex;
+                Remove(node);
+                AddTail(targetList, (struct Node *)newNode);
+            }
+            if (!preferHttp && strstr(sn->path, "http"))
+            {
+                printf("https:\n");
+                newNode->OriginalIndex = sn->OriginalIndex;
+                Remove(node);
+                AddTail(targetList, (struct Node *)newNode);
+            }
+            break; // Suche beenden
+        }
+        node = node->ln_Succ;
+    }
+}
+
+std::string Icecast::simpleEncode(const char* src)
+{
+    std::string out;
+    while (*src) {
+        if (*src == ' ')
+            out += "%20";
+        else
+            out += *src;
+        src++;
+    }
+    return out;
+}
+
+void Icecast::FetchList(List &songList, const char* filter)
 {
     m_amiSSL = new AmiSSL();
 
@@ -21,10 +77,13 @@ void Icecast::FetchList(List &songList)
         return;
 
     static char buffer[4096];
-    char host[127], path[127];
+    char host[256], path[256];
     int port = 443;
 
     std::string fName = "https://de1.api.radio-browser.info/json/stations";
+    if (filter && !filter[0] == '\0')
+        fName = fName + "/search?hidebroken=true&name=" + simpleEncode(filter);
+
     stringToLower(fName);
 
     size_t pos = fName.find("://");
@@ -35,13 +94,13 @@ void Icecast::FetchList(List &songList)
 
     if (slashPos == std::string::npos)
     {
-        strncpy(host, fName.substr(pos + 3).c_str(), 127);
+        strncpy(host, fName.substr(pos + 3).c_str(), 255);
         strcpy(path, "/");
     }
     else
     {
-        strncpy(host, fName.substr(pos + 3, slashPos - (pos + 3)).c_str(), 127);
-        strncpy(path, fName.substr(slashPos).c_str(), 127);
+        strncpy(host, fName.substr(pos + 3, slashPos - (pos + 3)).c_str(), 255);
+        strncpy(path, fName.substr(slashPos).c_str(), 255);
     }
 
     printf("Connecting to: %s:%d%s\n", host, port, path);
@@ -105,16 +164,19 @@ void Icecast::FetchList(List &songList)
                         removeFromString(name, "\\t");
                         removeFromString(name, "\\r");
                         removeFromString(name, "\\n");
-                        
+
                         SongNode *sn = new SongNode;
                         sprintf(sn->name, "[%s] %s", codec.c_str(), name.c_str());
                         sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
                         sn->node.ln_Name = sn->name;
                         sn->OriginalIndex = nextIndex++;
                         strncpy(sn->path, url.c_str(), 255);
-                        sn->path[255] = '\0';
+                        sn->path[254] = '\0';
 
-                        AddTail(&songList, (struct Node *)sn);
+                        if (!ExistsInPlaylist(&songList, sn->name))
+                            AddTail(&songList, (struct Node *)sn);
+                        else
+                            UpdateStationInPlaylist(&songList, sn->name, sn, true); // if entry already exists, update the old one, preferring http over https
                     }
                 }
                 streamBuffer.erase(0, endPos + 1);

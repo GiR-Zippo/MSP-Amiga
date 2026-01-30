@@ -4,13 +4,16 @@
 extern "C"
 {
 #define DR_MP3_IMPLEMENTATION
-#ifdef OLD_GCC 
-    #define DR_MP3_NO_WCHAR
+#ifdef OLD_GCC
+#define DR_MP3_NO_WCHAR
 #endif
 #include "dr_mp3.h"
 }
 
-MP3Stream::MP3Stream() : m_initialized(false) {}
+MP3Stream::MP3Stream() : m_initialized(false)
+{
+
+}
 
 MP3Stream::~MP3Stream()
 {
@@ -22,6 +25,22 @@ bool MP3Stream::open(const char *filename)
 {
     ID3Meta meta = ID3V2ReaderWriter::ReadID3MetaData(filename);
     m_duration = (uint32_t)meta.duration;
+    if (!meta.title.empty())
+    {
+        strncpy(m_title, meta.title.c_str(), sizeof(m_title) - 1);
+        m_title[sizeof(m_title) - 1] = '\0'; // Sicher ist sicher
+    }
+    else
+        strcpy(m_title, "Unknown Title");
+
+    if (!meta.artist.empty())
+    {
+        strncpy(m_artist, meta.artist.c_str(), sizeof(m_artist) - 1);
+        m_artist[sizeof(m_artist) - 1] = '\0';
+    }
+    else
+        strcpy(m_artist, "Unknown Artist");
+
     if (m_initialized)
     {
         drmp3_uninit(&m_mp3);
@@ -54,14 +73,16 @@ bool MP3Stream::seek(uint32_t targetSeconds)
     return result;
 }
 
-bool MP3Stream::seekRelative(int32_t targetSeconds) 
+bool MP3Stream::seekRelative(int32_t targetSeconds)
 {
     uint32_t currentSec = getCurrentSeconds();
     uint32_t totalSec = m_duration;
     int32_t targetSec = (int32_t)currentSec + targetSeconds;
-    
-    if (targetSec < 0) targetSec = 0;
-    if (targetSec > (int32_t)totalSec) targetSec = totalSec;
+
+    if (targetSec < 0)
+        targetSec = 0;
+    if (targetSec > (int32_t)totalSec)
+        targetSec = totalSec;
 
     uint64_t targetFrame = (uint64_t)targetSec * m_mp3.sampleRate;
     return drmp3_seek_to_pcm_frame(&m_mp3, targetFrame);

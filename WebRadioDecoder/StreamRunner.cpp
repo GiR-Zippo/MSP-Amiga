@@ -85,12 +85,13 @@ bool StreamRunner::openSocket()
             return false;
     }
 
-    char request[256];
+    char request[383];
     sprintf(request, "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Amiga\r\nConnection: close\r\n\r\n", m_parent->m_path, m_parent->m_host);
     if (m_amiSSL)
         SSL_write(m_amiSSL->GetSSL(), request, strlen(request));
     else
         send(m_socket, request, strlen(request), 0);
+
     return true;
 }
 

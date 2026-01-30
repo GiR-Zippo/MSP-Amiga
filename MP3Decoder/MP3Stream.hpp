@@ -25,11 +25,13 @@ class MP3Stream : public AudioStream
         uint32_t getDuration() const { return m_duration; }
         uint32_t getSampleRate() const;
         int      getChannels() const;
-
+        const char* getTitle() const { return m_title; }
+        const char* getArtist() const { return m_artist; }
     private:
         drmp3    m_mp3;
         bool     m_initialized;
         uint32_t m_duration;
+        char     m_title[128];
+        char     m_artist[128];
 };
-
 #endif

@@ -32,6 +32,33 @@ bool containsString(const char* haystack, const char* needle)
     return false;
 }
 
+void UTF8ToAmiga(char *str) {
+    unsigned char *src = (unsigned char *)str;
+    unsigned char *dst = (unsigned char *)str;
+
+    while (*src) {
+        if (*src == 0xC3) { // UTF-8 Startbyte für viele Sonderzeichen
+            src++;
+            if (*src == 0xA4)      *dst = 0xE4; // ä
+            else if (*src == 0xB6) *dst = 0xF6; // ö
+            else if (*src == 0xBC) *dst = 0xFC; // ü
+            else if (*src == 0x84) *dst = 0xC4; // Ä
+            else if (*src == 0x96) *dst = 0xD6; // Ö
+            else if (*src == 0x9C) *dst = 0xDC; // Ü
+            else if (*src == 0x9F) *dst = 0xDF; // ß
+            else *dst = '?'; // Fallback
+        } else if (*src < 128) {
+            *dst = *src;
+        } else {
+            *dst = '?'; // Unbekanntes Multibyte-Zeichen
+        }
+        src++;
+        dst++;
+    }
+    *dst = '\0';
+}
+
+
 //Bleibt so, dann compiled es
 size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps) {
     (void)ps; // Status wird am Amiga nicht benötigt

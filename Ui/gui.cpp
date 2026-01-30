@@ -1,7 +1,7 @@
 #include "gui.hpp"
 #include "../PlaybackRunner.hpp"
 #include "SharedUiFunctions.hpp"
-#include "PlaylistWindow.hpp"
+#include "Playlist/PlaylistWindow.hpp"
 
 MainUi* MainUi::instance = NULL;
 
@@ -21,7 +21,7 @@ static struct TagItem buttonTags[] = {
     {GTTX_Border, TRUE}, {TAG_DONE, 0}
 };
 
-static struct PlayerGadgetDef playerGadgets[] = {
+static struct GadgetDef playerGadgets[] = {
     // Kind         X    Y    W    H    Label    ID               Tags
     { SLIDER_KIND,  20, 142, 260, 12,   "",      ID_SEEKER,       seekerTags },
     { SLIDER_KIND, 285,  30,  10, 124,  "",      ID_VOLUME,       volTags },
@@ -216,6 +216,9 @@ bool MainUi::UpdateUi()
             }
         }
     }
+    if (PlaybackRunner::getInstance()->GetStream() != NULL)
+        drawVideoPlaceholder(PlaybackRunner::getInstance()->GetStream()->getTitle(), PlaybackRunner::getInstance()->GetStream()->getArtist());
+
     return true;
 }
 
@@ -229,7 +232,28 @@ void MainUi::CleanupGUI()
         FreeVisualInfo(m_visInfo);
 }
 
-// Zeichnet das schwarze "Video"-Viereck
+void MainUi::UpdateSeeker(long percent)
+{
+    if (m_Window && m_gads[ID_SEEKER])
+        GT_SetGadgetAttrs(m_gads[ID_SEEKER], m_Window, NULL, GTSL_Level, percent, TAG_END);
+}
+
+void MainUi::UpdateTimeDisplay(uint32_t lap, uint32_t total)
+{
+    if (!m_Window || !m_gads[ID_TIME_DISPLAY]) return;
+
+    // Zeit berechnen
+    uint32_t curSec  = lap;
+    uint32_t totalSec =total;
+
+    char lapBuf[16], durBuf[16];
+    formatTimeOldschool(lapBuf, curSec);
+    formatTimeOldschool(durBuf, totalSec);
+
+    sprintf(timeBuffer, "%s / %s", lapBuf, durBuf);
+    GT_SetGadgetAttrs(m_gads[ID_TIME_DISPLAY], m_Window, NULL, GTTX_Text, (Tag)timeBuffer, TAG_DONE);
+}
+
 void MainUi::drawVideoPlaceholder()
 {
     if (!m_Window)
@@ -246,13 +270,68 @@ void MainUi::drawVideoPlaceholder()
     Text(rp, "AAC Player", 10);
 }
 
-// Aktualisiert den Slider von außen
-void MainUi::UpdateSeeker(long percent)
+void MainUi::drawVideoPlaceholder(const char *title, const char *artist)
 {
-    if (m_Window && m_gads[ID_SEEKER])
-        GT_SetGadgetAttrs(m_gads[ID_SEEKER], m_Window, NULL, GTSL_Level, percent, TAG_END);
+    if (!m_Window) return;
+
+    struct RastPort *rp = m_Window->RPort;
+
+    int x1 = 20, y1 = 30;
+    int x2 = 280, y2 = 120;
+    int boxWidth = x2 - x1;
+
+    // 1. Hintergrund füllen (Löschen)
+    SetAPen(rp, 1); 
+    RectFill(rp, x1, y1, x2, y2);
+
+    // 2. Textfarbe
+    SetAPen(rp, 2); 
+
+    // Aufruf der Hilfsmethode (Ganz ohne auto/Lambda)
+    drawCenteredText(rp, title, x1, boxWidth, 75);
+    drawCenteredText(rp, artist, x1, boxWidth, 100);
+
+    // 3. Rahmen
+    SetAPen(rp, 3);
+    Move(rp, x1, y1);
+    Draw(rp, x2, y1);
+    Draw(rp, x2, y2);
+    Draw(rp, x1, y2);
+    Draw(rp, x1, y1);
 }
 
+void MainUi::drawCenteredText(struct RastPort *rp, const char *text, int x1, int boxWidth, int yPos)
+{
+    if (text && text[0] != '\0') {
+        // HIER: Die tatsächliche Länge des Strings ermitteln
+        int len = strlen(text); 
+        
+        // TextLength braucht die Länge, um die Pixelbreite zu berechnen
+        int pWidth = TextLength(rp, (CONST_STRPTR)text, len);
+
+        int xPos = x1 + (boxWidth - pWidth) / 2;
+        if (xPos < x1 + 5) xPos = x1 + 5; 
+
+        Move(rp, xPos, yPos);
+        
+        // HIER: Auch Text() muss 'len' bekommen, nicht eine feste Zahl!
+        Text(rp, (CONST_STRPTR)text, len); 
+    }
+}
+
+void MainUi::formatTimeOldschool(char* b, uint32_t s)
+{
+    uint32_t h = s / 3600;
+    uint32_t m = (s % 3600) / 60;
+    uint32_t sec = s % 60;
+
+    if (h > 0)
+        sprintf(b, "%lu:%02lu:%02lu", (unsigned long)h, (unsigned long)m, (unsigned long)sec);
+    else
+        sprintf(b, "%02lu:%02lu", (unsigned long)m, (unsigned long)sec);
+}
+
+//Unused atm
 void MainUi::drawVolumeLevel(long level) {
     return;
     //noch nicht
@@ -272,35 +351,4 @@ void MainUi::drawVolumeLevel(long level) {
         SetAPen(rp, (level > 50) ? 3 : 2); // Rot bei hoher Lautstärke
         RectFill(rp, x, y_bottom - height, x + 5, y_bottom);
     }
-}
-
-void MainUi::formatTimeOldschool(char* b, uint32_t s)
-{
-    uint32_t h = s / 3600;
-    uint32_t m = (s % 3600) / 60;
-    uint32_t sec = s % 60;
-
-    if (h > 0)
-        sprintf(b, "%lu:%02lu:%02lu", (unsigned long)h, (unsigned long)m, (unsigned long)sec);
-    else
-        sprintf(b, "%02lu:%02lu", (unsigned long)m, (unsigned long)sec);
-}
-
-void MainUi::UpdateTimeDisplay(uint32_t lap, uint32_t total)
-{
-    if (!m_Window || !m_gads[ID_TIME_DISPLAY]) return;
-
-    // Zeit berechnen
-    uint32_t curSec  = lap;
-    uint32_t totalSec =total;
-
-    char lapBuf[16], durBuf[16];
-    formatTimeOldschool(lapBuf, curSec);
-    formatTimeOldschool(durBuf, totalSec);
-
-    // Neuen String bauen
-    sprintf(timeBuffer, "%s / %s", lapBuf, durBuf);
-
-    // Gadget aktualisieren
-    GT_SetGadgetAttrs(m_gads[ID_TIME_DISPLAY], m_Window, NULL, GTTX_Text, (Tag)timeBuffer, TAG_DONE);
 }

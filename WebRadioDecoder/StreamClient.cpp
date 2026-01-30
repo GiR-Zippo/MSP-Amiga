@@ -3,7 +3,7 @@
 #include "StreamRunner.hpp"
 /// @brief constructor
 NetworkStream::NetworkStream() : m_connected(false), m_terminate(false),
-                                 m_bytesRead(0), m_workerProc(NULL)
+                                 m_workerProc(NULL)
 {
     m_socket = -1;
     m_q = NULL;
@@ -58,7 +58,6 @@ bool NetworkStream::open(const char *filename)
             break;
     }
 
-    m_bytesRead = 0;
     // Create our task
     struct TagItem playerTags[] = {
         {NP_Entry, (IPTR)NetworkStream::taskEntry},
@@ -111,7 +110,7 @@ bool NetworkStream::testConnection()
     char buffer[512];
     int bytesRead = 0;
     bool resState = false;
-    sprintf(request, "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Amiga\r\nConnection: close\r\n\r\n", m_path, m_host);
+    sprintf(request, "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Amiga\r\nIcy-MetaData: 1\r\nConnection: close\r\n\r\n", m_path, m_host);
 
     if (m_isHTTP)
     {

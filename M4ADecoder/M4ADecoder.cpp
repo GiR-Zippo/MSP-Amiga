@@ -22,6 +22,22 @@ bool M4AStream::open(const char *filename)
     if (!M4AReader::parse(filename, meta))
         return false;
     
+    if (!meta.title.empty())
+    {
+        strncpy(m_title, meta.title.c_str(), sizeof(m_title) - 1);
+        m_title[sizeof(m_title) - 1] = '\0'; // Sicher ist sicher
+    }
+    else
+        strcpy(m_title, "Unknown Title");
+
+    if (!meta.artist.empty())
+    {
+        strncpy(m_artist, meta.artist.c_str(), sizeof(m_artist) - 1);
+        m_artist[sizeof(m_artist) - 1] = '\0';
+    }
+    else
+        strcpy(m_artist, "Unknown Artist");
+        
     if (meta.audioTracks.size() > 0)
         m_duration = meta.audioTracks[0].duration;
 
