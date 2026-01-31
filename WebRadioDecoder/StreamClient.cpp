@@ -83,11 +83,12 @@ void NetworkStream::taskEntry()
         // bevor wir in den Worker springen
         self->m_q = new AudioQueue(176400);
         StreamRunner::Run(self);
+
+        // Wenn der Worker fertig ist (Stream Ende oder Terminate)
         Forbid();
         self->m_stop = true;
         Permit();
-        // Wenn der Worker fertig ist (Stream Ende oder Terminate)
-        if (self->m_q)
+         if (self->m_q)
         {
             delete self->m_q;
             self->m_q = NULL;

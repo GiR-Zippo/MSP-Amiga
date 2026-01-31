@@ -6,6 +6,10 @@ M4A, ACC, FLAC, OGG/Vorbis, MP123
 
 WebStreams: HTTP/HTTPS MP3 and AAC+ only
 
+Note: 
+- AAC+ Streams will only work with something beefier than a VampireV2 (PiStorm/Emu68 should work)
+- for seeking AAC raw files, MSP generates a seek table, this will take a while
+
 ## Requires:
 
 ### System:
@@ -21,18 +25,26 @@ WebStreams: HTTP/HTTPS MP3 and AAC+ only
 
 
 ## Compiling:
-If you are using beppos crosscompiler set USE_ADE = 0 in MakeFile
+
+### Beppos Crosscompiler:
+Set USE_ADE = 0 in MakeFile
 
 The compiler can be obtained here
 https://github.com/AmigaPorts/m68k-amigaos-gcc
 
-You can also compile via ADE native on your Amiga set USE_ADE = 1 in MakeFile
-Be awe this will take some time, grab a coffee and compile
+### ADE on Amiga
+Set USE_ADE = 1 in MakeFile
+
+Be aware this will take some time, grab a coffee and compile
+
+Note:
+
+Atm I can't get gcc2.9 to work properly with AAC+ decoding, seems it messes up the filterbank
+
 
 ## ADE
 if you are using ADE and the old gcc2.9 you might need the patched ahi.h proto, a patched bsdsocket.h and AmiSSL headers.
 
-Atm I can't get gcc2.9 to work properly with AAC+ decoding, it sounds weird, with the crosscompiler everything is fine.
 
 ## Uses:
 [MiniMP3](https://github.com/lieff/minimp3)
