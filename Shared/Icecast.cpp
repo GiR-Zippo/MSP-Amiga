@@ -13,62 +13,6 @@ Icecast::~Icecast()
         delete m_amiSSL;
 }
 
-bool Icecast::ExistsInPlaylist(struct List* targetList, const char* searchName)
-{
-    struct Node* node = targetList->lh_Head;
-    while (node->ln_Succ)
-    {
-        if (node->ln_Name && strcmp(node->ln_Name, searchName) == 0)
-        {
-            printf("gefunden %s\n", searchName);
-            return true; // Gefunden!
-        }
-        node = node->ln_Succ;
-    }
-    return false; // Nicht in der Liste
-}
-
-void Icecast::UpdateStationInPlaylist(struct List* targetList, const char* searchName, struct SongNode* newNode, bool preferHttp)
-{
-    struct Node* node = targetList->lh_Head;
-    while (node->ln_Succ)
-    {
-        if (node->ln_Name && strcmp(node->ln_Name, searchName) == 0)
-        {
-            SongNode *sn = (SongNode*)node;
-            if (preferHttp && strstr(sn->path, "https"))
-            {
-                printf("https:\n");
-                newNode->OriginalIndex = sn->OriginalIndex;
-                Remove(node);
-                AddTail(targetList, (struct Node *)newNode);
-            }
-            if (!preferHttp && strstr(sn->path, "http"))
-            {
-                printf("https:\n");
-                newNode->OriginalIndex = sn->OriginalIndex;
-                Remove(node);
-                AddTail(targetList, (struct Node *)newNode);
-            }
-            break; // Suche beenden
-        }
-        node = node->ln_Succ;
-    }
-}
-
-std::string Icecast::simpleEncode(const char* src)
-{
-    std::string out;
-    while (*src) {
-        if (*src == ' ')
-            out += "%20";
-        else
-            out += *src;
-        src++;
-    }
-    return out;
-}
-
 void Icecast::FetchList(List &songList, const char* filter)
 {
     m_amiSSL = new AmiSSL();
@@ -80,10 +24,11 @@ void Icecast::FetchList(List &songList, const char* filter)
     char host[256], path[256];
     int port = 443;
 
-    std::string fName = "https://de1.api.radio-browser.info/json/stations";
+    std::string fName = "https://de1.api.radio-browser.info/json/stations/search?";
     if (filter && !filter[0] == '\0')
-        fName = fName + "/search?hidebroken=true&name=" + simpleEncode(filter);
-
+        fName = fName + "/search?hidebroken=true&name=" + simpleEncode(filter) +"&";
+    
+    fName = fName + "limit=300";
     stringToLower(fName);
 
     size_t pos = fName.find("://");
@@ -110,9 +55,8 @@ void Icecast::FetchList(List &songList, const char* filter)
         printf("Con ERR\n");
         return;
     }
-    uint32_t ret = sprintf(buffer, "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Amiga\r\nConnection: close\r\n\r\n", path, host);
-    printf("Sende\n");
 
+    uint32_t ret = sprintf(buffer, "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Amiga\r\nConnection: close\r\n\r\n", path, host);
     ret = SSL_write(m_amiSSL->GetSSL(), buffer, strlen(buffer));
     if (ret <= 0)
     {
@@ -173,10 +117,10 @@ void Icecast::FetchList(List &songList, const char* filter)
                         strncpy(sn->path, url.c_str(), 255);
                         sn->path[254] = '\0';
 
-                        if (!ExistsInPlaylist(&songList, sn->name))
+                        if (!existsInPlaylist(&songList, sn->name))
                             AddTail(&songList, (struct Node *)sn);
                         else
-                            UpdateStationInPlaylist(&songList, sn->name, sn, true); // if entry already exists, update the old one, preferring http over https
+                            updateStationInPlaylist(&songList, sn->name, sn, true); // if entry already exists, update the old one, preferring http over https
                     }
                 }
                 streamBuffer.erase(0, endPos + 1);
@@ -220,6 +164,45 @@ int Icecast::getJsonIntValue(const std::string &json, const std::string &key)
     return atoi(json.substr(start, end - start).c_str());
 }
 
+bool Icecast::existsInPlaylist(struct List* targetList, const char* searchName)
+{
+    struct Node* node = targetList->lh_Head;
+    while (node->ln_Succ)
+    {
+        if (node->ln_Name && strcmp(node->ln_Name, searchName) == 0)
+            return true; // Gefunden!
+        node = node->ln_Succ;
+    }
+    return false; // Nicht in der Liste
+}
+
+void Icecast::updateStationInPlaylist(struct List* targetList, const char* searchName, struct SongNode* newNode, bool preferHttp)
+{
+    struct Node* node = targetList->lh_Head;
+    while (node->ln_Succ)
+    {
+        bool update = false;
+        if (node->ln_Name && strcmp(node->ln_Name, searchName) == 0)
+        {
+            SongNode *sn = (SongNode*)node;
+            if (preferHttp && strstr(sn->path, "https"))
+            {
+                newNode->OriginalIndex = sn->OriginalIndex;
+                Remove(node);
+                AddTail(targetList, (struct Node *)newNode);
+            }
+            if (!preferHttp && strstr(sn->path, "http"))
+            {
+                newNode->OriginalIndex = sn->OriginalIndex;
+                Remove(node);
+                AddTail(targetList, (struct Node *)newNode);
+            }
+            break; // Suche beenden
+        }
+        node = node->ln_Succ;
+    }
+}
+
 void Icecast::removeFromString(std::string &src, std::string arg)
 {
     if (arg.empty())
@@ -227,4 +210,17 @@ void Icecast::removeFromString(std::string &src, std::string arg)
     std::string::size_type pos = 0;
     while ((pos = src.find(arg, pos)) != std::string::npos)
         src.erase(pos, arg.length());
+}
+
+std::string Icecast::simpleEncode(const char* src)
+{
+    std::string out;
+    while (*src) {
+        if (*src == ' ')
+            out += "%20";
+        else
+            out += *src;
+        src++;
+    }
+    return out;
 }

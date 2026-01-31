@@ -47,9 +47,13 @@ class NetworkStream : public AudioStream
         {
             //wenn der Stream terminiert ist, dann stoppen wir auch das audio
             //einfach 0 zurück und weg isser
+            Forbid();
             if (m_stop)
+            {
+                Permit();
                 return 0;
-
+            }
+            Permit();
             //sind noch nicht soweit, also sound of silence
             if (m_q == NULL)
             {

@@ -24,8 +24,8 @@ NetworkStream::~NetworkStream()
 /// @param url
 bool NetworkStream::open(const char *filename)
 {
-    m_stop = false;
     Forbid();
+    m_stop = false;
     struct Task *oldTask = (struct Task *)FindTask((CONST_STRPTR) "StreamWorker");
     Permit();
 
@@ -83,6 +83,9 @@ void NetworkStream::taskEntry()
         // bevor wir in den Worker springen
         self->m_q = new AudioQueue(176400);
         StreamRunner::Run(self);
+        Forbid();
+        self->m_stop = true;
+        Permit();
         // Wenn der Worker fertig ist (Stream Ende oder Terminate)
         if (self->m_q)
         {
@@ -90,7 +93,9 @@ void NetworkStream::taskEntry()
             self->m_q = NULL;
         }
     }
+    Forbid();
     self->m_stop = true;
+    Permit();
 }
 
 /// @brief Close the StreamTask

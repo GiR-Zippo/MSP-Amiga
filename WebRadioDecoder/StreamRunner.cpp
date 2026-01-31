@@ -233,6 +233,8 @@ void StreamRunner::processAACStream()
             unsigned char *decodePtr = GetLinearBuffer(ringBuffer, readPos, 1440, RING_SIZE, frameStack);
             size_t samplesProduced = aac->decodeFrame(decodePtr, filled, &consumed, pcm, 4096);
 
+            m_parent->m_sampleRate = aac->getSampleRate();
+            m_parent->m_channels = aac->getChannels();
             if (consumed > 0)
             {
                 // Volume-Scaling

@@ -50,7 +50,7 @@ void NetworkStream::decodeUrlData(std::string url)
 /// @return true if everything okay
 bool NetworkStream::handleServerResponse(std::string response)
 {
-    printf("%s\n", response.c_str());
+    //printf("%s\n", response.c_str());
     m_codec = 255;
     if (strstr(response.c_str(), "200 OK"))
     {
