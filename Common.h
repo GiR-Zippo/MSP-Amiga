@@ -66,8 +66,21 @@ extern "C"
 {
     size_t wcsrtombs(char* dest, const wchar_t** src, size_t len, mbstate_t* ps) __attribute__((weak));
     size_t wcslen(const wchar_t* s) __attribute__((weak));
-}   
+}
+
+/// @brief Converts a string to lowercase
 void stringToLower(std::string& s);
+
+/// @brief Check if string contains a string
 bool containsString(const char* haystack, const char* needle);
+
+/// @brief Converts UTF to Amiga chars
 void UTF8ToAmiga(char *str);
+
+/// @brief Removes a char from string
+void RemoveFromString(std::string &src, std::string arg);
+        
+/// @brief just a helper for space to %20 conversion for urls
+std::string SimpleEncode(const char* src);
+
 #endif

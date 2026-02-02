@@ -110,6 +110,22 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
     return true;
 }
 
+void PlaybackRunner::StopPlayback()
+{
+    if (m_PlayerState != PFLAG_NON_INIT)
+    {
+        setFlag(PFLAG_STOP);
+        removeFlag(PFLAG_INIT_DONE);
+        // wait for our task to be closed
+        while (!m_PlayerState == PFLAG_NON_INIT)
+            Delay(5);
+        // remove stream only, task removed the audio
+        if (m_stream)
+            delete m_stream;
+        m_stream = NULL;
+    }
+}
+
 void PlaybackRunner::PlayerTaskFunc()
 {
     // wart mal kurz

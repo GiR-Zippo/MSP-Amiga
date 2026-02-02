@@ -114,6 +114,7 @@ void StreamRunner::processMP3Stream()
     mp3dec_t mp3d;
     mp3dec_init(&mp3d);
     mp3dec_frame_info_t info;
+
     short pcm[MINIMP3_MAX_SAMPLES_PER_FRAME];
     while (!m_parent->m_terminate)
     {
@@ -123,7 +124,21 @@ void StreamRunner::processMP3Stream()
             int toRead = (writePos + space > RING_SIZE) ? (RING_SIZE - writePos) : space;
             long res = 0;
             if (m_amiSSL)
+            {
                 res = SSL_read(m_amiSSL->GetSSL(), (char *)(ringBuffer + writePos), toRead);
+                if (res <= 0)
+                {
+                    unsigned long err = ERR_get_error();
+                    char err_buf[256];
+                    ERR_error_string_n(err, err_buf, sizeof(err_buf));
+                    printf("AmiSSL Error: %s\n", err_buf);
+
+                    int ssl_err = SSL_get_error(m_amiSSL->GetSSL(), res);
+                    printf("SSL_get_error: %d\n", ssl_err);
+                    m_parent->m_terminate =true;
+                    continue;
+                }
+            }
             else
                 res = recv(m_socket, (char *)(ringBuffer + writePos), toRead, 0);
 
@@ -132,13 +147,11 @@ void StreamRunner::processMP3Stream()
                 writePos = (writePos + res) & RING_MASK;
                 filled += res;
             }
-            else if (res == 0 && !m_amiSSL)
-            { // Bei SSL bedeutet res=0 nicht immer Ende
+            else if (res == 0 && !m_amiSSL) // Bei SSL bedeutet res=0 nicht immer Ende
                 break;
-            }
         }
         // MP3-Frames sind klein (meist < 1440 Bytes), 4096 Bytes Puffer reicht dicke
-        while (filled > 1440 && m_parent->m_q->getFreeSpace() >= 2304)
+        while (!m_parent->m_terminate && filled > 1440 && m_parent->m_q->getFreeSpace() >= 2304)
         {
             unsigned char frameStack[2048]; // Temporär für "Knick" im Ring
             unsigned char *decodePtr = GetLinearBuffer(ringBuffer, readPos, 1440, RING_SIZE, frameStack);
@@ -146,16 +159,29 @@ void StreamRunner::processMP3Stream()
             if (info.frame_bytes > 0)
             {
                 // Sync Metadaten (Samplerate etc.)
-                m_parent->m_sampleRate = info.hz;
-                m_parent->m_channels = info.channels;
-
+                m_parent->m_sampleRate = info.hz == 0 ? 44100 : info.hz;
+                m_parent->m_channels = info.channels ==0 ? 2 : info.channels;
                 if (samples > 0)
                 {
                     // Volume Scaling (90%)
                     for (int i = 0; i < samples * info.channels; i++)
                         pcm[i] = (pcm[i] * 9) / 10;
 
-                    m_parent->m_q->put(pcm, samples * info.channels);
+                    // für streams mit 1 kanal
+                    if (info.channels == 1)
+                    {
+                        short stereoTemp[MINIMP3_MAX_SAMPLES_PER_FRAME * 2];
+                        for (int i = 0; i < samples; i++)
+                        {
+                            stereoTemp[i*2]     = pcm[i];
+                            stereoTemp[i*2 + 1] = pcm[i];
+                        }
+                        m_parent->m_q->put(stereoTemp, samples * 2);
+                        m_parent->m_channels = 2;
+                    }
+                    else
+                        m_parent->m_q->put(pcm, samples * info.channels);
+
                     m_parent->m_totalSamples += samples;
                 }
 
@@ -223,7 +249,7 @@ void StreamRunner::processAACStream()
         }
 
         // Wir dekodieren im Burst, solange genug Daten für einen Frame da sind
-        while (filled > 4096 && m_parent->m_q->getFreeSpace() >= 4096)
+        while (!m_parent->m_terminate && filled > 4096 && m_parent->m_q->getFreeSpace() >= 4096)
         {
             size_t consumed = 0;
             // Problem: AAC-Frames können über den Rand des Puffers ragen (Wrap-around).

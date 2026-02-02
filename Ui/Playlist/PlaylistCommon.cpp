@@ -49,6 +49,15 @@ void PlaylistWindow::clearList()
     }
     NewList(&m_SongList);
     NewList(&m_HiddenList);
+    m_SelectedIndex = -1;
+}
+
+void PlaylistWindow::clearSearch()
+{
+    m_searchBuffer[0] = '\0';
+    GT_SetGadgetAttrs(m_Gads[PLAYLIST_SEARCH], m_Window, NULL,
+    GTST_String, (Tag)"", 
+    TAG_DONE);
 }
 
 Node *PlaylistWindow::findNode(int index)

@@ -1,6 +1,7 @@
 #include "Common.h"
 #include "Icecast.hpp"
 #include "../Ui/Playlist/PlaylistWindow.hpp"
+#include "MiniJson.hpp"
 
 Icecast::Icecast()
 {
@@ -26,7 +27,7 @@ void Icecast::FetchList(List &songList, const char* filter)
 
     std::string fName = "https://de1.api.radio-browser.info/json/stations/search?";
     if (filter && !filter[0] == '\0')
-        fName = fName + "/search?hidebroken=true&name=" + simpleEncode(filter) +"&";
+        fName = fName + "/search?hidebroken=true&name=" + SimpleEncode(filter) +"&";
     
     fName = fName + "limit=300";
     stringToLower(fName);
@@ -94,21 +95,17 @@ void Icecast::FetchList(List &songList, const char* filter)
             if (endPos != std::string::npos)
             {
                 std::string stationJson = streamBuffer.substr(startPos, endPos - startPos + 1);
-
-                // Jetzt extrahieren wir die Daten aus dem kleinen Stück
-                std::string name = getJsonValue(stationJson, "name");
-                std::string url = getJsonValue(stationJson, "url_resolved");
-                std::string codec = getJsonValue(stationJson, "codec");
-                int lastcheckok = getJsonIntValue(stationJson, "lastcheckok");
+                std::string name, url, codec;
+                int lastcheckok  = 0;
+                MiniJson::GetValue(stationJson, "name", name);
+                MiniJson::GetValue(stationJson, "url_resolved", url);
+                MiniJson::GetValue(stationJson, "codec", codec);
+                MiniJson::GetIntValue(stationJson, "lastcheckok", lastcheckok);
                 if (!name.empty())
                 {
                     // MP3 and AAC+ only atm
                     if ((strstr(codec.c_str(), "AAC+") || strstr(codec.c_str(), "MP3")) && lastcheckok == 1)
                     {
-                        removeFromString(name, "\\t");
-                        removeFromString(name, "\\r");
-                        removeFromString(name, "\\n");
-
                         SongNode *sn = new SongNode;
                         sprintf(sn->name, "[%s] %s", codec.c_str(), name.c_str());
                         sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
@@ -134,36 +131,6 @@ void Icecast::FetchList(List &songList, const char* filter)
     m_amiSSL->CleanupAll();
 }
 
-std::string Icecast::getJsonValue(const std::string &json, const std::string &key)
-{
-    std::string searchKey = "\"" + key + "\":\"";
-    size_t start = json.find(searchKey);
-    if (start == std::string::npos)
-        return "";
-
-    start += searchKey.length();
-    size_t end = json.find("\"", start);
-    if (end == std::string::npos)
-        return "";
-
-    return json.substr(start, end - start);
-}
-
-int Icecast::getJsonIntValue(const std::string &json, const std::string &key)
-{
-    std::string searchKey = "\"" + key + "\":";
-    size_t start = json.find(searchKey);
-    if (start == std::string::npos)
-        return -1;
-
-    start += searchKey.length();
-    size_t end = json.find("\"", start);
-    if (end == std::string::npos)
-        return -1;
-
-    return atoi(json.substr(start, end - start).c_str());
-}
-
 bool Icecast::existsInPlaylist(struct List* targetList, const char* searchName)
 {
     struct Node* node = targetList->lh_Head;
@@ -181,7 +148,6 @@ void Icecast::updateStationInPlaylist(struct List* targetList, const char* searc
     struct Node* node = targetList->lh_Head;
     while (node->ln_Succ)
     {
-        bool update = false;
         if (node->ln_Name && strcmp(node->ln_Name, searchName) == 0)
         {
             SongNode *sn = (SongNode*)node;
@@ -203,24 +169,3 @@ void Icecast::updateStationInPlaylist(struct List* targetList, const char* searc
     }
 }
 
-void Icecast::removeFromString(std::string &src, std::string arg)
-{
-    if (arg.empty())
-        return;
-    std::string::size_type pos = 0;
-    while ((pos = src.find(arg, pos)) != std::string::npos)
-        src.erase(pos, arg.length());
-}
-
-std::string Icecast::simpleEncode(const char* src)
-{
-    std::string out;
-    while (*src) {
-        if (*src == ' ')
-            out += "%20";
-        else
-            out += *src;
-        src++;
-    }
-    return out;
-}

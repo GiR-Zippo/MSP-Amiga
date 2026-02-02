@@ -34,7 +34,6 @@ static BPTR GetStdErr(void)
     return err;
 }
 
-
 struct Library *AmiSSLBase = NULL;
 struct Library *AmiSSLMasterBase =NULL;
 struct Library *SocketBase =NULL;
@@ -47,11 +46,17 @@ AmiSSL::AmiSSL()
     bio_err = NULL;
     sock = -1;
 
+    AmiSSLBase = NULL;
+    AmiSSLMasterBase =NULL;
+    SocketBase =NULL;
+    UtilityBase =NULL;
+
     m_AmiSSLInitialized = false;
 }
 
 AmiSSL::~AmiSSL()
 {
+    printf("AmiSSL exit\n");
 }
 
 bool AmiSSL::Init()

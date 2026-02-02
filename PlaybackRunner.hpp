@@ -37,6 +37,8 @@ class PlaybackRunner
         /// @brief Starts initalize and start the playback
         bool StartPlaybackTask(std::string file);
 
+        void StopPlayback();
+
         /// @brief The Playback Task (don't call it Schnitzel)
         static void PlayerTaskFunc();
 

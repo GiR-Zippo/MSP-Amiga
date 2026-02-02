@@ -4,9 +4,6 @@
 /// @param url
 void NetworkStream::decodeUrlData(std::string url)
 {
-    // to lowercase
-    stringToLower(url);
-
     // set the port and proto
     if (strstr(url.c_str(), "http://"))
     {
@@ -38,9 +35,14 @@ void NetworkStream::decodeUrlData(std::string url)
         strncpy(m_host, url.substr(hostStart, hostEnd - hostStart).c_str(), 127);
 
     if (slashPos != std::string::npos)
-        strncpy(m_path, url.substr(slashPos).c_str(), 255);
+        strncpy(m_path, url.substr(slashPos).c_str(), 511);
     else
-        strncpy(m_path, "/", 255);
+        strncpy(m_path, "/", 511);
+
+    // codec anhand der Endung finden
+    /*if (m_codec == 255)
+        if (strstr(url.c_str(), ".mp3"))
+            m_codec = 0;*/
 
     printf("Decoded to: %s %u %s\n", m_host, m_port, m_path);
 }
@@ -52,6 +54,7 @@ bool NetworkStream::handleServerResponse(std::string response)
 {
     //printf("%s\n", response.c_str());
     m_codec = 255;
+
     if (strstr(response.c_str(), "200 OK"))
     {
         //get Icy-MetaData for titleinformation
@@ -66,7 +69,8 @@ bool NetworkStream::handleServerResponse(std::string response)
             }
         }
         //get codec-type
-        if (strstr(response.c_str(), "Content-Type: audio/mpeg"))
+        if (strstr(response.c_str(), "Content-Type: audio/mpeg") ||
+            strstr(response.c_str(), "Content-Type: audio/mp3"))
         {
             // Es ist MP3
             m_codec = 0;
@@ -85,6 +89,8 @@ bool NetworkStream::handleServerResponse(std::string response)
     {
         // wenn redirect, dann neue URL holen
         size_t locPos = response.find("Location: ");
+        if (locPos == std::string::npos)
+            locPos = response.find("location: ");
         if (locPos != std::string::npos)
         {
             size_t start = locPos + 10; // Hinter "Location: "
@@ -95,6 +101,9 @@ bool NetworkStream::handleServerResponse(std::string response)
         }
     }
     else if (strstr(response.c_str(), "400 Bad Request"))
+    {
+        printf("400 Bad Request\n");
         return false;
+    }
     return true;
 }

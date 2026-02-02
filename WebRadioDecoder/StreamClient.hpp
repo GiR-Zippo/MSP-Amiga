@@ -43,30 +43,7 @@ class NetworkStream : public AudioStream
 
         bool IsConnected() const { return m_connected; }
 
-        int readSamples(short *buffer, int samplesToRead)
-        {
-            //wenn der Stream terminiert ist, dann stoppen wir auch das audio
-            //einfach 0 zurück und weg isser
-            Forbid();
-            if (m_stop)
-            {
-                Permit();
-                return 0;
-            }
-            Permit();
-            //sind noch nicht soweit, also sound of silence
-            if (m_q == NULL)
-            {
-                memset(buffer, 0, (samplesToRead) * sizeof(short));
-                return samplesToRead / 2;
-            }
-
-            unsigned int read =m_q->get(buffer, samplesToRead);
-            //mit 0 auffüllen, für den Fall der Faelle
-            if (read < (unsigned int)samplesToRead)
-                memset(buffer + read, 0, (samplesToRead - read) * sizeof(short));
-            return samplesToRead / 2;
-        }
+        int readSamples(short *buffer, int samplesToRead);
 
     private:
         static void taskEntry(); // Der Amiga-Prozess-Einstieg
@@ -81,7 +58,7 @@ class NetworkStream : public AudioStream
 
         int             m_socket;
         char            m_host[128];
-        char            m_path[256];
+        char            m_path[512];
         uint16_t        m_port;
         bool            m_isHTTP;
         uint8_t         m_codec;

@@ -101,6 +101,9 @@ class PlaylistWindow
         /// @brief Clears the playlist
         void clearList();
 
+        /// @brief Clears the search text
+        void clearSearch();
+
         /// @brief Find a node by index in playlist
         struct Node *findNode(int index);
 
@@ -115,10 +118,15 @@ class PlaylistWindow
         void showAll();
 
         /*********************************************************/
-        /***                Icecast related Stuff              ***/
+        /***               Webstream related Stuff             ***/
         /*********************************************************/
         /// @brief Gets the list from icecast, respects m_searchBuffer
         void getIceCastList();
+
+        /// @brief Gets the list from iTunes, respects m_searchBuffer
+        void getiTunesList();
+
+        void getiTunesRSSList();
 
         /*********************************************************/
         /***                 M3U related Stuff                 ***/

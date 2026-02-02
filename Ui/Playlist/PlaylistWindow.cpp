@@ -13,6 +13,7 @@ const char *playlistModi[] =
     {
         "Playlist",
         "Icecast",
+        "iTunes Podcast (buggy)",
         NULL};
 
 static struct TagItem buttonTags[] = {
@@ -157,9 +158,18 @@ int16_t PlaylistWindow::UpdateUi()
 
         if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_MODE*1000)
         {
+            PlaybackRunner::getInstance()->StopPlayback();
             m_playlistMode = msgCode;
-            if (msgCode == 1)
+            if (msgCode == 0)
+            {
+                GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
+                clearList();
+                GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
+            }
+            else if (msgCode == 1)
                 getIceCastList();
+            else if (msgCode == 2)
+                getiTunesList();
         }
         if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_SEARCH*1000)
         {
@@ -174,6 +184,8 @@ int16_t PlaylistWindow::UpdateUi()
             }
             if (m_playlistMode == 1)
                 getIceCastList();
+            if (m_playlistMode == 2)
+                getiTunesList();
         }
         if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_LIST*1000)
         {
@@ -188,8 +200,12 @@ int16_t PlaylistWindow::UpdateUi()
                 }
                 else
                     m_allowNextSong = false;
+
                 m_SelectedIndex = selectedIndex;
-                PlayNext(true);
+                if (m_playlistMode == 2)
+                    getiTunesRSSList();
+                else
+                    PlayNext(true);
             }
             m_lastClickSeconds = msg->Seconds;
             m_lastClickMicros = msg->Micros;

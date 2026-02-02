@@ -34,6 +34,5 @@ class AmiSSL
         BIO *bio_err;
         int sock;
         bool m_AmiSSLInitialized;
-
 };
 #endif
