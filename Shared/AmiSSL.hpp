@@ -2,13 +2,7 @@
 #define __AMISSL_HPP__
 
 #include "Common.h"
-
 #include <amissl/amissl.h>
-#include <libraries/amisslmaster.h>
-#include <libraries/amissl.h>
-#include <proto/amissl.h>
-#include <proto/amisslmaster.h>
-#include <proto/socket.h>
 
 class AmiSSL
 {

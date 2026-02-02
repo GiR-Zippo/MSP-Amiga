@@ -1,28 +1,17 @@
 #include "AmiSSL.hpp"
 
-#include <sys/socket.h>
-#include <netdb.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
 
-#include <proto/exec.h>
-#include <proto/dos.h>
 #define __NOLIBBASE__
 #include <proto/utility.h>
 #undef __NOLIBBASE__
 #include <proto/amissl.h>
 #include <proto/amisslmaster.h>
-#include <proto/socket.h>
-#include <clib/alib_protos.h>
-#include <utility/utility.h>
 
 #include <amissl/amissl.h>
 #include <libraries/amisslmaster.h>
 #include <libraries/amissl.h>
 
-const char stack_size[] = "$STACK:102400";
+//const char stack_size[] = "$STACK:102400";
 
 #define FFlush(x) Flush(x)
 #define XMKSTR(x) #x
