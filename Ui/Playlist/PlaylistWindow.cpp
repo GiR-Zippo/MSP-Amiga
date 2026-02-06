@@ -16,6 +16,14 @@ const char *playlistModi[] =
         "iTunes Podcast (buggy)",
         NULL};
 
+const char *playlistPModi[] =
+    {
+        "Nothing",
+        "Single",
+        "Repeat",
+        "Shuffle",
+        NULL};
+
 static struct TagItem buttonTags[] = {
     {GTTX_Border, TRUE}, {TAG_DONE, 0}};
 
@@ -26,7 +34,8 @@ static struct GadgetDef playlistGadgets[] = {
     {LISTVIEW_KIND,  10,    70,     230,    200,    "",         PLAYLIST_LIST,   buttonTags},
     {BUTTON_KIND,    10,    265,    50,     20,     "Add",      PLAYLIST_ADD,    buttonTags},
     {BUTTON_KIND,    60,    265,    50,     20,     "Remove",   PLAYLIST_REMOVE, buttonTags},
-    {BUTTON_KIND,    110,   265,    50,     20,     "Clear",    PLAYLIST_CLEAR,  buttonTags}
+    {BUTTON_KIND,    110,   265,    50,     20,     "Clear",    PLAYLIST_CLEAR,  buttonTags},
+    {CYCLE_KIND,     160,   265,    80,     20,     "",         PLAYLIST_PMODE,  buttonTags},
 };
 
 PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
@@ -38,10 +47,12 @@ PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
     m_playlistInUse = false;
     m_allowNextSong = false;
     m_playlistMode = 0; // 0 = PlaylistMode
+    m_playlistPMode = 0;
     m_SelectedIndex = -1;
     m_lastClickSeconds = 0;
     m_lastClickMicros = 0;
     m_searchBuffer[0] = '\0';
+    srand(time(NULL));
 }
 
 bool PlaylistWindow::SetupGUI()
@@ -99,6 +110,13 @@ bool PlaylistWindow::SetupGUI()
             m_Gads[i] = CreateGadget(playlistGadgets[i].kind, context, &ng,
                                      GTCY_Labels, (Tag)playlistModi,
                                      GTCY_Active, m_playlistMode, // Welcher Eintrag ist am Anfang aktiv?
+                                     TAG_DONE);
+        }
+        else if (i == PLAYLIST_PMODE) //Modus
+        {
+            m_Gads[i] = CreateGadget(playlistGadgets[i].kind, context, &ng,
+                                     GTCY_Labels, (Tag)playlistPModi,
+                                     GTCY_Active, m_playlistPMode, // Welcher Eintrag ist am Anfang aktiv?
                                      TAG_DONE);
         }
         else
@@ -239,6 +257,8 @@ int16_t PlaylistWindow::UpdateUi()
             clearList();
             GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
         }
+        if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_PMODE*1000)
+            m_playlistPMode = msgCode;
     }
     return -1;
 }
@@ -292,6 +312,18 @@ void PlaylistWindow::PlayNext(bool noadvance)
     for (node = m_SongList.lh_Head; node->ln_Succ; node = node->ln_Succ)
         count++;
 
+    if (m_playlistPMode == 0)
+        m_playlistInUse = false;
+    // single repeat
+    if (m_playlistPMode == 1)
+        noadvance = true;
+    // shuffle mode
+    if (m_playlistPMode == 3)
+    {
+        printf("Random\n");
+        m_SelectedIndex = rand() % count-1;
+    }
+
     if (!noadvance)
     {
         if (m_SelectedIndex > count)
@@ -306,6 +338,9 @@ void PlaylistWindow::PlayNext(bool noadvance)
 
     SongNode *sn = (SongNode *)node;
     strncpy(selectedPath, sn->path, 255);
+
+    if (m_playlistPMode == 1)
+        noadvance = false;
 
     if (m_Window && m_Gads[PLAYLIST_LIST])
     {

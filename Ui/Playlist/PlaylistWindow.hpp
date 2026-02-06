@@ -22,6 +22,7 @@ enum PlaylistGads
     PLAYLIST_ADD,
     PLAYLIST_REMOVE,
     PLAYLIST_CLEAR,
+    PLAYLIST_PMODE,
     PLAYLIST_MAX,
 };
 
@@ -158,6 +159,7 @@ class PlaylistWindow
         bool            m_allowNextSong;// Helper for signal proc. in main.cpp
         bool            m_firstTime;    // Helper for signal proc. in main.cpp
         uint8_t         m_playlistMode; // Our mode - 0 = Playlist - 1 = Icecast
+        uint8_t         m_playlistPMode; // Our mode - 0 = Single - 1 = Repeat - ...
 
         // SuFu
         char            m_searchBuffer[64]; // Search textbuffer

@@ -332,7 +332,7 @@ bool StreamRunner::readHeader()
     const int RING_SIZE = 65536;
     const int RING_MASK = RING_SIZE - 1;
 
-    m_icyInterval = 0; // m_parent->m_icyInterval;
+    m_icyInterval = 0;
     m_bytesUntilMeta = m_icyInterval;
 
     while (m_writePos < MAX_HEADER_SIZE)
@@ -443,9 +443,15 @@ unsigned char *StreamRunner::readIcyMeta(int RING_SIZE, int RING_MASK, unsigned 
             if (titleEnd)
             {
                 *titleEnd = 0;
-                std::vector<std::string> parts = Split(std::string(titleStart), " - ");
-                strncpy(m_parent->m_title, parts[1].c_str(), 127);
-                strncpy(m_parent->m_artist, parts[0].c_str(), 127);
+                //if 0x00 no title there
+                if (titleStart[0] != 00)
+                {
+                    std::vector<std::string> parts = Split(std::string(titleStart), " - ");
+                    strncpy(m_parent->m_title, parts[1].c_str(), 127);
+                    m_parent->m_title[127] = '\0';
+                    strncpy(m_parent->m_artist, parts[0].c_str(), 127);
+                    m_parent->m_artist[127] = '\0';
+                }
             }
         }
     }
