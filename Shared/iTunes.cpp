@@ -181,7 +181,12 @@ void iTunes::FetchList(List &songList, const char *filter)
             streamBuffer.erase(0, processedUntil);
         }
     }
-    m_amiSSL->CleanupAll();
+    if (m_amiSSL)
+    {
+        m_amiSSL->CleanupAll();
+        delete m_amiSSL;
+        m_amiSSL = NULL;
+    }
 }
 
 void iTunes::FetchRSS(List &songList, const char *url)
@@ -300,5 +305,10 @@ void iTunes::FetchRSS(List &songList, const char *url)
          node = (struct SongNode *)node->node.ln_Succ)
         node->OriginalIndex = idx++;
 
-    m_amiSSL->CleanupAll();
+    if (m_amiSSL)
+    {
+        m_amiSSL->CleanupAll();
+        delete m_amiSSL;
+        m_amiSSL = NULL;
+    }
 }

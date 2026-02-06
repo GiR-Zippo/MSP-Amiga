@@ -14,7 +14,7 @@ AHIPlayback::AHIPlayback(AudioStream *s)
     m_buffer[1] = new short[BUFSIZE / sizeof(short)];
     m_bytesRead = 0;
     m_current = 0;
-    m_volume = 0x10000;
+    m_volume = 0xFFFF;
     m_pause = false;
     //setAmigaFilter(false);
 }

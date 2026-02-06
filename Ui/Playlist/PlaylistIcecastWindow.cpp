@@ -5,6 +5,7 @@
 
 void PlaylistWindow::getIceCastList()
 {
+    PlaybackRunner::getInstance()->StopPlayback();
     GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     clearList();
     Icecast *_icecast = new Icecast();
@@ -16,7 +17,6 @@ void PlaylistWindow::getIceCastList()
 void PlaylistWindow::getiTunesList()
 {
     PlaybackRunner::getInstance()->StopPlayback();
-
     GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     clearList();
     iTunes *_itunes = new iTunes();
@@ -27,6 +27,7 @@ void PlaylistWindow::getiTunesList()
 
 void PlaylistWindow::getiTunesRSSList()
 {
+    PlaybackRunner::getInstance()->StopPlayback();
     clearSearch();
     GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     struct Node *node;

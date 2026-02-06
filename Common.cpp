@@ -38,6 +38,46 @@ bool containsString(const char *haystack, const char *needle)
     return false;
 }
 
+char *strcasestr(const char *haystack, const char *needle)
+{
+    if (!*needle)
+        return (char *)haystack;
+
+    for (; *haystack; haystack++)
+    {
+        if (tolower((unsigned char)*haystack) == tolower((unsigned char)*needle))
+        {
+            const char *h = haystack;
+            const char *n = needle;
+            while (*h && *n && tolower((unsigned char)*h) == tolower((unsigned char)*n))
+            {
+                h++;
+                n++;
+            }
+            if (!*n)
+                return (char *)haystack;
+        }
+    }
+    return NULL;
+}
+
+std::vector<std::string> Split(const std::string &text, const std::string &delimiter)
+{
+    std::vector<std::string> tokens;
+    size_t start = 0;
+    size_t end = text.find(delimiter);
+
+    while (end != std::string::npos)
+    {
+        tokens.push_back(text.substr(start, end - start));
+        start = end + delimiter.length();
+        end = text.find(delimiter, start);
+    }
+
+    tokens.push_back(text.substr(start));
+    return tokens;
+}
+
 void UTF8ToAmiga(char *str)
 {
     unsigned char *src = (unsigned char *)str;
@@ -157,4 +197,39 @@ size_t wcslen(const wchar_t *s)
 
     // Die Differenz der Zeiger ergibt die Anzahl der Elemente
     return static_cast<size_t>(p - s);
+}
+
+void dump_packet(const uint8_t *buffer, int len)
+{
+    printf("\n--- Packet Dump (%d bytes) ---\n", len);
+
+    for (int i = 0; i < len; i += 16)
+    {
+        // 1. Offset anzeigen (Hex)
+        printf("%04x: ", i);
+
+        // 2. Hex-Teil (16 Bytes pro Zeile)
+        for (int j = 0; j < 16; j++)
+        {
+            if (i + j < len)
+                printf("%02x ", buffer[i + j]);
+            else
+                printf("   "); // Auffüllen bei kürzeren Zeilen
+        }
+
+        printf(" | ");
+
+        // 3. String-Teil (ASCII)
+        for (int j = 0; j < 16; j++)
+        {
+            if (i + j < len)
+            {
+                uint8_t c = buffer[i + j];
+                // Nur druckbare Zeichen anzeigen, sonst einen Punkt
+                printf("%c", isprint(c) ? c : '.');
+            }
+        }
+        printf("\n");
+    }
+    printf("------------------------------\n");
 }

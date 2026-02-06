@@ -9,7 +9,6 @@ class AmiSSL
     public:
         AmiSSL();
         ~AmiSSL();
-        bool Fetch(const char* arg);
         bool Init();
         void Cleanup();
         bool OpenConnection(const char* host, int port);

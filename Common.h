@@ -74,6 +74,10 @@ void stringToLower(std::string& s);
 /// @brief Check if string contains a string
 bool containsString(const char* haystack, const char* needle);
 
+char *strcasestr(const char *haystack, const char *needle);
+
+std::vector<std::string> Split(const std::string &text, const std::string &delimiter);
+
 /// @brief Converts UTF to Amiga chars
 void UTF8ToAmiga(char *str);
 
@@ -82,5 +86,8 @@ void RemoveFromString(std::string &src, std::string arg);
         
 /// @brief just a helper for space to %20 conversion for urls
 std::string SimpleEncode(const char* src);
+
+/// @brief show buffer content
+void dump_packet(const uint8_t *buffer, int len);
 
 #endif

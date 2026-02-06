@@ -44,7 +44,8 @@ class NetworkStream : public AudioStream
         bool IsConnected() const { return m_connected; }
 
         int readSamples(short *buffer, int samplesToRead);
-
+        const char* getTitle() const { return m_title; }
+        const char* getArtist() const { return m_artist; }
     private:
         static void taskEntry(); // Der Amiga-Prozess-Einstieg
         void closeStream();

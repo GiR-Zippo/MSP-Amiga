@@ -158,7 +158,6 @@ int16_t PlaylistWindow::UpdateUi()
 
         if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_MODE*1000)
         {
-            PlaybackRunner::getInstance()->StopPlayback();
             m_playlistMode = msgCode;
             if (msgCode == 0)
             {

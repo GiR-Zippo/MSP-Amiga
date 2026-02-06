@@ -32,6 +32,8 @@ void PlaylistWindow::AddEntry(std::string name, std::string fullPath)
 
 void PlaylistWindow::clearList()
 {
+    if (m_Window)
+        GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     struct Node *n;
     while ((n = RemHead(&m_SongList)))
     {
@@ -50,6 +52,8 @@ void PlaylistWindow::clearList()
     NewList(&m_SongList);
     NewList(&m_HiddenList);
     m_SelectedIndex = -1;
+    if (m_Window)
+        GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
 }
 
 void PlaylistWindow::clearSearch()

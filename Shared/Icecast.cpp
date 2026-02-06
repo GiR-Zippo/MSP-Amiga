@@ -74,7 +74,6 @@ void Icecast::FetchList(List &songList, const char* filter)
     // lese die Json
     std::string streamBuffer;
     int bytes;
-
     while ((bytes = SSL_read(m_amiSSL->GetSSL(), buffer, sizeof(buffer) - 1)) > 0)
     {
         buffer[bytes] = '\0';
@@ -83,7 +82,7 @@ void Icecast::FetchList(List &songList, const char* filter)
         size_t startPos;
         int nextIndex = 0;
         struct SongNode *lastNode = (struct SongNode *)songList.lh_TailPred;
-        if (lastNode->node.ln_Pred)
+        if (lastNode && lastNode->node.ln_Pred)
             nextIndex = lastNode->OriginalIndex + 1;
 
         // Suche nach dem Anfang eines Objekts
@@ -107,7 +106,7 @@ void Icecast::FetchList(List &songList, const char* filter)
                     if ((strstr(codec.c_str(), "AAC+") || strstr(codec.c_str(), "MP3")) && lastcheckok == 1)
                     {
                         SongNode *sn = new SongNode;
-                        sprintf(sn->name, "[%s] %s", codec.c_str(), name.c_str());
+                        snprintf(sn->name, sizeof(sn->name), "[%s] %s", codec.c_str(), name.c_str());
                         sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
                         sn->node.ln_Name = sn->name;
                         sn->OriginalIndex = nextIndex++;
@@ -128,7 +127,12 @@ void Icecast::FetchList(List &songList, const char* filter)
         if (streamBuffer.length() > 10000)
             streamBuffer = "";
     }
-    m_amiSSL->CleanupAll();
+    if (m_amiSSL)
+    {
+        m_amiSSL->CleanupAll();
+        delete m_amiSSL;
+        m_amiSSL = NULL;
+    }
 }
 
 bool Icecast::existsInPlaylist(struct List* targetList, const char* searchName)

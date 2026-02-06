@@ -1,6 +1,5 @@
 #include "AmiSSL.hpp"
 
-
 #define __NOLIBBASE__
 #include <proto/utility.h>
 #undef __NOLIBBASE__
@@ -10,8 +9,6 @@
 #include <amissl/amissl.h>
 #include <libraries/amisslmaster.h>
 #include <libraries/amissl.h>
-
-//const char stack_size[] = "$STACK:102400";
 
 #define FFlush(x) Flush(x)
 #define XMKSTR(x) #x
@@ -29,7 +26,7 @@ struct Library *SocketBase =NULL;
 struct Library *UtilityBase =NULL;
 
 AmiSSL::AmiSSL()
-{
+{  
     ctx = NULL;
     ssl = NULL;
     bio_err = NULL;
@@ -45,7 +42,6 @@ AmiSSL::AmiSSL()
 
 AmiSSL::~AmiSSL()
 {
-    printf("AmiSSL exit\n");
 }
 
 bool AmiSSL::Init()
@@ -302,57 +298,6 @@ void AmiSSL::CleanupAll()
         bio_err = NULL;
     }
     Cleanup();
-}
-
-bool AmiSSL::Fetch(const char *arg)
-{
-    if (!Init())
-        return false;
-
-    char buffer[4096];
-    char host[127], path[127];
-    int port = 443;
-
-    std::string fName = arg;
-    stringToLower(fName);
-
-    size_t pos = fName.find("://");
-    if (pos == std::string::npos)
-        return false;
-
-    size_t slashPos = fName.find('/', pos + 3);
-
-    if (slashPos == std::string::npos)
-    {
-        strncpy(host, fName.substr(pos + 3).c_str(), 127);
-        strcpy(path, "/");
-    }
-    else
-    {
-        strncpy(host, fName.substr(pos + 3, slashPos - (pos + 3)).c_str(), 127);
-        strncpy(path, fName.substr(slashPos).c_str(), 127);
-    }
-
-    printf("Connecting to: %s:%d%s\n", host, port, path);
-
-    if (!OpenConnection(host, port))
-        return false;
-
-    sprintf(buffer, "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: Amiga\r\nConnection: close\r\n\r\n", path, host);
-    if (SSL_write(ssl, buffer, strlen(buffer)) <= 0)
-    {
-        CloseConnection();
-        return false;
-    }
-
-    // Schritt 3: Daten lesen
-    int bytes;
-    while ((bytes = SSL_read(ssl, buffer, sizeof(buffer) - 1)) > 0)
-        FWrite(Output(), buffer, bytes, 1);
-
-    // Schritt 4: Abbau
-    CleanupAll();
-    return (bytes >= 0);
 }
 
 struct Library* AmiSSL::GetSocketBase()

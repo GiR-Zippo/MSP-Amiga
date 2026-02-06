@@ -13,6 +13,9 @@ NetworkStream::NetworkStream() : m_connected(false), m_terminate(false),
     m_isHTTP = true;
     m_stop = false;
     m_codec = 255;
+    m_icyInterval = -1;
+    m_title[0] = 0;
+    m_artist[0] = 0;
 }
 
 /// @brief destructor
