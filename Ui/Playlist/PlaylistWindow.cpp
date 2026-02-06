@@ -319,10 +319,7 @@ void PlaylistWindow::PlayNext(bool noadvance)
         noadvance = true;
     // shuffle mode
     if (m_playlistPMode == 3)
-    {
-        printf("Random\n");
         m_SelectedIndex = rand() % count-1;
-    }
 
     if (!noadvance)
     {

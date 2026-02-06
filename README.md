@@ -1,3 +1,5 @@
+![Logo](https://raw.githubusercontent.com/GiR-Zippo/MSP-Amiga/refs/heads/master/.github/images/msp1.png)
+
 # My Shitty Player
 just a test how to NOT build a audioplayer for an Amiga
 
