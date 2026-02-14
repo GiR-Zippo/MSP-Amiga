@@ -13,6 +13,8 @@ AACStream::AACStream()
       m_initialized(false),
       m_duration(0)
 {
+    strcpy(m_title, "Unknown Title");
+    strcpy(m_artist, "Unknown Artist");
 }
 
 AACStream::~AACStream()
@@ -23,9 +25,9 @@ AACStream::~AACStream()
 
 bool AACStream::open(const char *filename)
 {
-    printf("Building seektable please wait ...\n");
+    strncpy(m_artist, "Building seektable please wait ...\0", 35);
     m_aac = dr_aac_open_file(filename);
-    printf("...done\n");
+    strncpy(m_artist, "Building seektable done\0", 25);
     if (!m_aac)
         return false;
     m_sampleRate = m_aac->samplerate;

@@ -36,7 +36,7 @@ bool NetworkStream::open(const char *filename)
 
     if (oldTask)
     {
-        printf("Alter Task läuft noch! Erst beenden...\n");
+        strcpy(m_artist, "Old Task still running! Killing...\0");
         m_terminate = true; // Signal zum Abbruch senden
 
         // Kurz warten, bis er weg ist (Active Waiting)
@@ -45,7 +45,7 @@ bool NetworkStream::open(const char *filename)
         {
             Delay(2);
         }
-        printf("Alter Task beendet...\n");
+        strcpy(m_artist, "Old Task exited...\0");
     }
 
     std::string fName = filename;

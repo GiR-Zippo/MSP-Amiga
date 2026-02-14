@@ -6,7 +6,7 @@
 #include "VorbisDecoder/VorbisStream.hpp"
 #include "M4ADecoder/M4ADecoder.hpp"
 #include "WebRadioDecoder/StreamClient.hpp"
-
+#include "MIDIDecoder/MidiAudioStream.hpp"
 #include "Ui/gui.hpp"
 
 PlaybackRunner* PlaybackRunner::instance = NULL;
@@ -88,6 +88,8 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
             m_stream = new VorbisStream();
         else if (strstr(file.c_str(), ".m4a"))
             m_stream = new M4AStream();
+        else if (strstr(file.c_str(), ".mid"))
+            m_stream = new MidiAudioStream();
 
         if (m_stream != NULL && m_stream->open(file.c_str()))
         {

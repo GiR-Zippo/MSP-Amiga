@@ -109,6 +109,7 @@ void Icecast::FetchList(List &songList, const char* filter)
                         snprintf(sn->name, sizeof(sn->name), "[%s] %s", codec.c_str(), name.c_str());
                         sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
                         sn->node.ln_Name = sn->name;
+                        sn->node.ln_Type = NT_USER;
                         sn->OriginalIndex = nextIndex++;
                         strncpy(sn->path, url.c_str(), 255);
                         sn->path[254] = '\0';

@@ -233,3 +233,10 @@ void dump_packet(const uint8_t *buffer, int len)
     }
     printf("------------------------------\n");
 }
+
+#ifdef OLD_GCC
+float powf(float base, float exp)
+{
+    return (float)pow(base, exp);
+}
+#endif

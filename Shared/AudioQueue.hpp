@@ -1,3 +1,6 @@
+#ifndef __AUDIOQUEUE_HPP__
+#define __AUDIOQUEUE_HPP__
+
 #include <proto/exec.h>
 #include <string.h>
 #include "Common.h"
@@ -90,3 +93,5 @@ public:
     /// @brief Is buffer initialized?
     bool isValid() const { return m_buffer != NULL; }
 };
+
+#endif

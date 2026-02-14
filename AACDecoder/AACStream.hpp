@@ -24,7 +24,8 @@ class AACStream : public AudioStream
         uint32_t getDuration() const { return m_duration; }
         uint32_t getSampleRate() const { return m_sampleRate; }
         int      getChannels() const { return m_channels; }
-
+        const char* getTitle() const { return m_title; }
+        const char* getArtist() const { return m_artist; }
         dr_aac*  getHandler() { return m_aac; }
 
     private:
@@ -34,6 +35,8 @@ class AACStream : public AudioStream
         unsigned char  m_channels;
         bool           m_initialized;
         uint32_t       m_duration;
+        char           m_title[128];
+        char           m_artist[128];
 };
 
 #endif

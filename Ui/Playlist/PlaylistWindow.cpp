@@ -74,6 +74,8 @@ bool PlaylistWindow::SetupGUI()
     {
         FreeVisualInfo(m_VisInfo);
         UnlockPubScreen(NULL, scr);
+        m_VisInfo = NULL;
+        m_GadgetList = NULL;
         return false;
     }
 
@@ -155,7 +157,8 @@ bool PlaylistWindow::SetupGUI()
         m_opened = true;
         return true;
     }
-
+    m_VisInfo = NULL;
+    m_GadgetList = NULL;
     return false;
 }
 

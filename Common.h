@@ -36,6 +36,10 @@
 
 #include <utility/tagitem.h>
 
+#include <proto/exec.h>
+#include <proto/dos.h>
+
+#define M_PI 3.14159265358979323846
 //set OLD_GCC as -DOLD_GCC flag, when using ADE
 #ifdef OLD_GCC
 #ifndef CONST_STRPTR
@@ -54,9 +58,13 @@ typedef unsigned short wchar_t;
 
 typedef unsigned long uintptr_t;
 
+#include <math-68881.h>
+float powf(float base, float exp);
+
 #else
 #include <cwchar> 
 #include <stdint.h>
+#include <cmath>
 #endif
 
 #ifndef IPTR

@@ -1,5 +1,6 @@
 #include "Common.h"
 #include "Shared/AmiSSL.hpp"
+#include "Shared/Configuration.hpp"
 #include "Ui/gui.hpp"
 #include "Ui/Playlist/PlaylistWindow.hpp"
 #include "PlaybackRunner.hpp"
@@ -15,6 +16,8 @@ int main()
     if (ssl->Init())
         ssl->Cleanup();
     delete ssl;
+
+    sConfiguration->LoadConfig();
 
     if (!MainUi::getInstance()->SetupGUI())
         return -1;
@@ -57,6 +60,5 @@ int main()
     printf("Cleanup: MainUi\n");
     MainUi::getInstance()->CleanupGUI();
     printf("Cleabup done\n");
-
     return 0;
 }

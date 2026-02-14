@@ -19,6 +19,7 @@ void PlaylistWindow::AddEntry(std::string name, std::string fullPath)
     sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
     sn->node.ln_Name = sn->name;
     sn->OriginalIndex = nextIndex;
+    sn->node.ln_Type = NT_USER;
     strncpy(sn->path, fullPath.c_str(), 255);
     sn->path[255] = '\0';
 
@@ -32,27 +33,41 @@ void PlaylistWindow::AddEntry(std::string name, std::string fullPath)
 
 void PlaylistWindow::clearList()
 {
-    if (m_Window)
+    if (m_Window && m_opened && m_GadgetList && m_Gads[PLAYLIST_LIST])
         GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     struct Node *n;
     while ((n = RemHead(&m_SongList)))
     {
         SongNode *sn = (SongNode *)n;
-        if (sn->node.ln_Name)
-            sn->node.ln_Name = NULL;
+        
+        // Sanity checks!
+        if ((ULONG)sn < 0x400 || (ULONG)sn > 0x80000000)
+            continue;  // Skip!
+        
+        if (sn->node.ln_Type != NT_USER)
+            continue;
+        
         delete sn;
     }
+
     while ((n = RemHead(&m_HiddenList)))
     {
         SongNode *sn = (SongNode *)n;
-        if (sn->node.ln_Name)
-            sn->node.ln_Name = NULL;
+        
+        // Sanity checks!
+        if ((ULONG)sn < 0x400 || (ULONG)sn > 0x80000000)
+            continue;  // Skip!
+        
+        if (sn->node.ln_Type != NT_USER)
+            continue;
+
         delete sn;
     }
-    NewList(&m_SongList);
-    NewList(&m_HiddenList);
+
+    //NewList(&m_SongList);
+    //NewList(&m_HiddenList);
     m_SelectedIndex = -1;
-    if (m_Window)
+    if (m_Window && m_opened && m_GadgetList && m_Gads[PLAYLIST_LIST])
         GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, (IPTR)&m_SongList, TAG_DONE);
 }
 

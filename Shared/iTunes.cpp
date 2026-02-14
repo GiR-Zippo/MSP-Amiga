@@ -164,6 +164,7 @@ void iTunes::FetchList(List &songList, const char *filter)
                         UTF8ToAmiga(sn->name);
                         sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
                         sn->node.ln_Name = sn->name;
+                        sn->node.ln_Type = NT_USER;
                         sn->OriginalIndex = nextIndex++;
                         strncpy(sn->path, url.c_str(), 255);
                         sn->path[254] = '\0';
@@ -280,6 +281,7 @@ void iTunes::FetchRSS(List &songList, const char *url)
                     UTF8ToAmiga(sn->name);
                     sn->name[sizeof(sn->name) - 1] = '\0'; // Null-Terminierung sicherstellen
                     sn->node.ln_Name = sn->name;
+                    sn->node.ln_Type = NT_USER;
                     sn->OriginalIndex = nextIndex++;
                     strncpy(sn->path, ep.audioUrl.c_str(), 255);
                     sn->path[254] = '\0';

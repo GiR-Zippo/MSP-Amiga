@@ -6,8 +6,8 @@
 void PlaylistWindow::getIceCastList()
 {
     PlaybackRunner::getInstance()->StopPlayback();
-    GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     clearList();
+    GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     Icecast *_icecast = new Icecast();
     _icecast->FetchList(m_SongList, m_searchBuffer);
     delete _icecast;
@@ -17,8 +17,8 @@ void PlaylistWindow::getIceCastList()
 void PlaylistWindow::getiTunesList()
 {
     PlaybackRunner::getInstance()->StopPlayback();
-    GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     clearList();
+    GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL, GTLV_Labels, -1, TAG_DONE);
     iTunes *_itunes = new iTunes();
     _itunes->FetchList(m_SongList, m_searchBuffer);
     delete _itunes;

@@ -13,8 +13,10 @@
 void StreamRunner::Run(NetworkStream *parent)
 {
     StreamRunner worker(parent);
+    strcpy(parent->m_artist, "Connecting...\0");
     if (worker.openSocket())
     {
+        strcpy(parent->m_artist, "Connected...\0");
         parent->m_connected = true;
         if (parent->m_codec == 0)
             worker.processMP3Stream();
@@ -130,7 +132,7 @@ void StreamRunner::processMP3Stream()
 
     if (!readHeader())
     {
-        printf("No Header!\n");
+        strcpy(m_parent->m_artist, "Err: No HTTP header...\0");
         FreeVec(m_ringBuffer);
         return;
     }
@@ -241,7 +243,7 @@ void StreamRunner::processAACStream()
 
     if (!readHeader())
     {
-        printf("No Header!\n");
+        strcpy(m_parent->m_artist, "Err: No HTTP header...\0");
         FreeVec(m_ringBuffer);
         return;
     }
@@ -393,6 +395,7 @@ bool StreamRunner::readStream(int RING_SIZE, int RING_MASK)
                 int ssl_err = SSL_get_error(m_amiSSL->GetSSL(), res);
                 printf("SSL_get_error: %d\n", ssl_err);
                 FreeVec(m_ringBuffer);
+                strcpy(m_parent->m_artist, "Err: AmiSSL read data...\0");
                 return false;
             }
         }
@@ -406,6 +409,7 @@ bool StreamRunner::readStream(int RING_SIZE, int RING_MASK)
         }
         else if (res == 0 && !m_amiSSL) // Bei SSL bedeutet res=0 nicht immer Ende
         {
+            strcpy(m_parent->m_artist, "Err: Socket read data...\0");
             FreeVec(m_ringBuffer);
             return false;
         }
