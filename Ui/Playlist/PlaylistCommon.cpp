@@ -27,7 +27,7 @@ void PlaylistWindow::AddEntry(std::string name, std::string fullPath)
 
     GT_SetGadgetAttrs(m_Gads[PLAYLIST_LIST], m_Window, NULL,
                       GTLV_Labels, (IPTR)&m_SongList,
-                      GTLV_ShowSelected, NULL,
+                      GTLV_ShowSelected, (ULONG)m_SelectedIndex,
                       TAG_DONE);
 }
 

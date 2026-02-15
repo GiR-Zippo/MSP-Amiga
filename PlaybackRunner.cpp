@@ -31,7 +31,7 @@ void PlaybackRunner::Cleanup()
     removeFlag(PFLAG_INIT_DONE);
     int timeout = 100;
     while ((!m_PlayerState == PFLAG_NON_INIT) && timeout-- > 0) // warten...
-        Delay(2);
+        Delay(3);
 
     if (m_stream)
         delete m_stream;

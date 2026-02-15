@@ -96,7 +96,7 @@ bool PlaylistWindow::SetupGUI()
         {
             m_Gads[i] = CreateGadget(playlistGadgets[i].kind, context, &ng,
                                      GTLV_Labels, (Tag)&m_SongList,
-                                     GTLV_ShowSelected, NULL,
+                                     GTLV_ShowSelected,  (ULONG)0,
                                      GTLV_ScrollWidth, 18L,
                                      TAG_DONE);
         }
@@ -286,7 +286,6 @@ void PlaylistWindow::open()
 
 void PlaylistWindow::close()
 {
-    m_opened = false;
     if (m_Window)
     {
         CloseWindow(m_Window);
@@ -296,12 +295,18 @@ void PlaylistWindow::close()
     {
         FreeGadgets(m_GadgetList);
         m_GadgetList = NULL;
+        for (int i = 0; i < PLAYLIST_MAX; i++)
+            m_Gads[i] = NULL;
     }
-    if (m_VisInfo)
+    if (m_VisInfo && m_opened)
     {
+        if ((ULONG)m_VisInfo > 0x1000 && 
+            (ULONG)m_VisInfo < 0x80000000 &&
+            TypeOfMem(m_VisInfo))  // ← Prüft ob Speicher existiert!
         FreeVisualInfo(m_VisInfo);
         m_VisInfo = NULL;
     }
+    m_opened = false;
 }
 
 void PlaylistWindow::PlayNext(bool noadvance)
