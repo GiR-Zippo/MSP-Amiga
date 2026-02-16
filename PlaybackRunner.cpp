@@ -102,11 +102,13 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
             g_args->volumeLevel = ((MainUi::getInstance()->GetVolume() * 0x10000) / 100) - 1;
             m_playerProc = (struct Process *)CreateNewProc(playerTags);
             if (m_playerProc)
+            {
                 m_playerProc->pr_Task.tc_UserData = (APTR)g_args;
-            // tell the audio to start
-            setFlag(PFLAG_INIT_DONE);
-            setFlag(PFLAG_PLAYING);
-            removeFlag(PFLAG_PAUSE);
+                // tell the audio to start
+                setFlag(PFLAG_INIT_DONE);
+                setFlag(PFLAG_PLAYING);
+                removeFlag(PFLAG_PAUSE);
+            }
         }
     }
     return true;
@@ -130,17 +132,26 @@ void PlaybackRunner::StopPlayback()
 
 void PlaybackRunner::PlayerTaskFunc()
 {
-    // wart mal kurz
-    Delay(1);
     struct Process *me = (struct Process *)FindTask(NULL);
     PlayerArgs *pb = (PlayerArgs *)me->pr_Task.tc_UserData;
 
     bool _audioInitDone = false;
     bool _updateWait = false;
 
+    int timeout = 100;  // Max 2 Sekunden
+    while (!pb && timeout-- > 0)
+    {
+        pb = (PlayerArgs *)me->pr_Task.tc_UserData;
+        if (!pb)
+            Delay(1);
+    }
+    
     // no data
     if (!pb)
+    {
+        printf("PlayerTask: TIMEOUT - no UserData!\n");
         return;
+    }
 
     // create the AHIPlayback in this scope
     AHIPlayback *playback = new AHIPlayback(pb->stream);
@@ -150,7 +161,7 @@ void PlaybackRunner::PlayerTaskFunc()
         if (!pb || !pb->stream)
             break;
 
-        // die Laustärke hier setzen
+            // die Laustärke hier setzen
         if (playback->GetVolume() != pb->volumeLevel)
             playback->SetVolume(pb->volumeLevel);
 

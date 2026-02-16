@@ -53,6 +53,7 @@ private:
     float m_bendTable[1024];
     float m_lfoTable[256];
     float m_attenuationTable[1001];
+    float m_fineTuneTable[401];
     uint8_t m_lfoPos;
 };
 #endif

@@ -38,6 +38,14 @@ SF2VoiceManager::SF2VoiceManager(int maxVoices) : m_maxvoices(maxVoices)
         // Formel: 10^(-cB / 200)
         m_attenuationTable[i] = powf(10.0f, (float)i / -200.0f);
 
+    // Fine-Tune Table: -100 bis +100 cents
+    // Index 0 = -100 cents, Index 100 = 0 cents, Index 200 = +100 cents
+    for (int i = 0; i <= 400; i++)
+    {
+        int cents = i - 200;  // -100 bis +100
+        m_fineTuneTable[i] = powf(2.0f, (float)cents / 1200.0f);
+    }
+
     m_globalAgeCounter = 0;
     m_masterGain = 1.0f;
 }
@@ -122,13 +130,21 @@ void SF2VoiceManager::NoteOn(const SampleMatch &match, int note, float vol, uint
             pitchRatio *= powf(2.0f, bendInSemitones / 12.0f);
         }
 
-        // 3. Fine-Tuning vom INSTRUMENT (Generator 52)
+        // 3. Fine-Tuning vom INSTRUMENT - TABLE!
         if (match.fineTune != 0)
-            pitchRatio *= powf(2.0f, (float)match.fineTune / 1200.0f);
-
-        // 4. Fine-Tuning vom SAMPLE (aus Sample-Header)
+        {
+            int tuneIdx = match.fineTune + 200;  // -100..+100 → 0..200
+            if (tuneIdx >= 0 && tuneIdx <= 400)
+                pitchRatio *= m_fineTuneTable[tuneIdx];
+        }
+        
+        // 4. Fine-Tuning vom SAMPLE - TABLE!
         if (v.sample->pitchCorrection != 0)
-            pitchRatio *= powf(2.0f, (float)v.sample->pitchCorrection / 1200.0f);
+        {
+            int corrIdx = v.sample->pitchCorrection + 200;  // -100..+100 → 0..200
+            if (corrIdx >= 0 && corrIdx <= 400)
+                pitchRatio *= m_fineTuneTable[corrIdx];
+        }
     }
 
     // Rate-Korrektur (Sample-Rate des WAVs vs. Mixer-Rate)
@@ -143,27 +159,18 @@ void SF2VoiceManager::NoteOn(const SampleMatch &match, int note, float vol, uint
     v.posHigh = 0;
 
     // 4. PANNING & VOLUME
-    // Attenuation aus LUT (0.1 dB Schritte)
     int cB = match.attenuation;
-    if (cB < 0)
-        cB = 0;
-    if (cB > 1000)
-        cB = 1000;
-    float sfAttenuation = 0.5f;
-    if (match.attenuation != 0)
-    {
-        // Wir begrenzen den Wert nach oben!
-        // Mehr als 250-300 cB (25-30 dB) ist bei normalen Instrumenten selten.
-        int safeAtten = match.attenuation;
-        if (safeAtten > 500)
-            safeAtten = 500;
+    cB = cB / 3;
+    if (cB < 0) cB = 0;
+    if (cB > 1000) cB = 1000;
+    int safeAtten = cB;
+    if (safeAtten > 1000) safeAtten = 1000;
 
-        sfAttenuation = m_attenuationTable[safeAtten];
-    }
+    float sfAttenuation = m_attenuationTable[safeAtten];
 
-    // Gain-Berechnung mit einem kleinen Headroom-Faktor (z.B. 1.5 oder 2.0)
+    // Gain-Berechnung mit einem kleinen Headroom-Faktor (z.B. 1.0 oder 2.0)
     // Viele Sampler machen das, um die Dämpfung des Soundfonts zu kompensieren.
-    float masterBoost = 1.5f;
+    float masterBoost = 1.0f;
     float totalGain = vol * sfAttenuation * masterBoost;
 
     // 4. Stereo-Verteilung (Panning)

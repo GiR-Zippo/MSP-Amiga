@@ -127,8 +127,8 @@ void MidiAudioStreamRunner::TaskLoop()
                 m_samplesToNext = CHUNK_FRAMES;
         }
 
-        while (m_parent->m_q && !m_parent->m_stop &&
-               !m_parent->m_q->put(mixBuffer, CHUNK_FRAMES * 2))
+        while (m_parent->m_q && !m_parent->m_stop && 
+            !m_parent->m_q->put(mixBuffer, CHUNK_FRAMES * 2))
             Delay(10);
     }
 }
