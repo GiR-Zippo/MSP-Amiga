@@ -341,7 +341,7 @@ SampleMatch SF2Parser::GetSampleForNote(int bankNum, int presetNum, int midiNote
                 int16_t rootOver = -1;
                 int mode = 0;
                 int currentBagInstAtten = 0;
-
+                int coarseTune = 0;
                 for (int ig = m_iBags[ib].genIdx; ig < m_iBags[ib + 1].genIdx; ig++)
                 {
                     uint16_t op = m_iGens[ig].genOper;
@@ -358,6 +358,8 @@ SampleMatch SF2Parser::GetSampleForNote(int bankNum, int presetNum, int midiNote
                     }
                     if (op == 48) 
                         currentBagInstAtten = (int16_t)val;
+                    if (op == 51)  // Coarse Tune
+                        coarseTune = (int16_t)val;
                     if (op == 53)
                         sampleIdx = val;
                     if (op == 58)
@@ -380,6 +382,7 @@ SampleMatch SF2Parser::GetSampleForNote(int bankNum, int presetNum, int midiNote
                 {
                     match.left = &m_samples[sampleIdx];
                     match.rootKey = (rootOver != -1) ? rootOver : (int)match.left->originalPitch;
+                    match.rootKey += coarseTune;
                     match.attenuation = finalPresetAtten + instAttenuation + currentBagInstAtten;
                     // mode 0: no loop
                     // mode 1: loop continuously

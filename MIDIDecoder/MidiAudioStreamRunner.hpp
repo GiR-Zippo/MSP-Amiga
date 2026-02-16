@@ -27,6 +27,7 @@ class MidiAudioStreamRunner
         void TaskLoop();
         void ExecuteMidiEvent(const MidiEvent &ev);
         void ProcessMidiEvents();
+        void PreloadSamples();
         void SeekTo(double targetSeconds);
         MidiAudioStream *m_parent;
         SF2Parser *m_sf2;

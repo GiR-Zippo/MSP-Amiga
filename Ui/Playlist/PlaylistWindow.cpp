@@ -288,11 +288,17 @@ void PlaylistWindow::close()
 {
     if (m_Window)
     {
+        if ((ULONG)m_Window > 0x1000 && 
+            (ULONG)m_Window < 0x80000000 &&
+            TypeOfMem(m_Window))
         CloseWindow(m_Window);
         m_Window = NULL;
     }
     if (m_GadgetList)
     {
+        if ((ULONG)m_GadgetList > 0x1000 && 
+            (ULONG)m_GadgetList < 0x80000000 &&
+            TypeOfMem(m_VisInfo))
         FreeGadgets(m_GadgetList);
         m_GadgetList = NULL;
         for (int i = 0; i < PLAYLIST_MAX; i++)
@@ -302,7 +308,7 @@ void PlaylistWindow::close()
     {
         if ((ULONG)m_VisInfo > 0x1000 && 
             (ULONG)m_VisInfo < 0x80000000 &&
-            TypeOfMem(m_VisInfo))  // ← Prüft ob Speicher existiert!
+            TypeOfMem(m_VisInfo))
         FreeVisualInfo(m_VisInfo);
         m_VisInfo = NULL;
     }

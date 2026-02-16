@@ -20,7 +20,7 @@ MidiAudioStreamRunner::MidiAudioStreamRunner(MidiAudioStream *parent)
 {
     m_sf2 = new SF2Parser();
     m_midi = new MidiParser();
-    m_mixer = new SF2VoiceManager(128); //128 voices
+    m_mixer = new SF2VoiceManager(128); // 128 voices
     for (int i = 0; i < 16; i++)
     {
         m_chans[i].vol = 100;
@@ -56,6 +56,8 @@ bool MidiAudioStreamRunner::open(const char *file)
         strcpy(m_parent->m_artist, "Error loading Midi!\0");
         return false;
     }
+    strcpy(m_parent->m_artist, "Preloading Samples...\0");
+    PreloadSamples();
 
     m_parent->m_duration = m_midi->CalculateDuration();
 
@@ -70,7 +72,7 @@ bool MidiAudioStreamRunner::open(const char *file)
 
     // Formel: (Samples pro Minute) / (Ticks pro Minute)
     // (44100 * 60) / (BPM * PPQ)
-    m_spt = ((44100.0 * 60.0) / (bpm * ppq)) *2;
+    m_spt = ((44100.0 * 60.0) / (bpm * ppq)) * 2;
 
     // m_spt = (44100.0 * 60.0) / (120.0 * m_midi.GetTicksPerQuarter());
     m_samplesToNext = 0;
@@ -125,8 +127,8 @@ void MidiAudioStreamRunner::TaskLoop()
                 m_samplesToNext = CHUNK_FRAMES;
         }
 
-        while (m_parent->m_q && !m_parent->m_stop && 
-            !m_parent->m_q->put(mixBuffer, CHUNK_FRAMES * 2))
+        while (m_parent->m_q && !m_parent->m_stop &&
+               !m_parent->m_q->put(mixBuffer, CHUNK_FRAMES * 2))
             Delay(10);
     }
 }
@@ -190,6 +192,74 @@ void MidiAudioStreamRunner::ProcessMidiEvents()
     }
 }
 
+void MidiAudioStreamRunner::PreloadSamples()
+{
+    std::vector<void *> uniqueSamples;
+
+    int currentProg[16] = {0};
+    int currentBank[16] = {0};
+    for (int i = 0; i < 16; i++)
+        currentBank[i] = (i == 9) ? 128 : 0;
+
+    std::vector<MidiTrack> &tracks = (std::vector<MidiTrack> &)m_midi->GetTracks();
+    for (size_t t = 0; t < tracks.size(); t++)
+    {
+        MidiTrack &track = tracks[t];
+        for (size_t e = 0; e < track.events.size(); e++)
+        {
+            MidiEvent &ev = track.events[e];
+            if ((ev.type & 0xF0) == 0xC0)
+                currentProg[ev.channel] = ev.data1;
+            else if ((ev.type & 0xF0) == 0xB0 && ev.data1 == 0)
+                currentBank[ev.channel] = ev.data2;
+            else if ((ev.type & 0xF0) == 0x90 && ev.data2 > 0)
+            {
+                int bank = (ev.channel == 9) ? 128 : currentBank[ev.channel];
+                SampleMatch m = m_sf2->GetSampleForNote(bank, currentProg[ev.channel], ev.data1, ev.data2);
+                if (m.left)
+                {
+                    bool found = false;
+                    for (size_t i = 0; i < uniqueSamples.size(); i++)
+                        if (uniqueSamples[i] == m.left)
+                        {
+                            found = true;
+                            break;
+                        }
+                    if (!found)
+                        uniqueSamples.push_back(m.left);
+                }
+                if (m.right)
+                {
+                    bool found = false;
+                    for (size_t i = 0; i < uniqueSamples.size(); i++)
+                        if (uniqueSamples[i] == m.right)
+                        {
+                            found = true;
+                            break;
+                        }
+                    if (!found)
+                        uniqueSamples.push_back(m.right);
+                }
+                break;
+            }
+        }
+    }
+
+    uint32_t totalToLoad = uniqueSamples.size();
+    for (uint32_t i = 0; i < totalToLoad; i++)
+    {
+        char progressMsg[64];
+        char buf[16];
+        char buf2[16];
+        itoa(i + 1, buf);
+        itoa(totalToLoad, buf2);
+        sprintf(progressMsg, "Loading Samples: %s / %s \n", buf, buf2);
+        strcpy(m_parent->m_artist, progressMsg);
+
+        m_sf2->EnsureSampleLoaded((SFSampleHeader *)uniqueSamples[i]);
+    }
+}
+
 void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
 {
     // Spezial-Check für "gequetschtes" Tempo-Event
@@ -244,25 +314,25 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
                 // Note On mit Velocity 0 ist ein Note Off
                 m_mixer->NoteOff(ev.data1, chan, m_chans[chan].sustainPedal);
             break;
-        
+
         // Note Off
         case 0x80:
-                m_mixer->NoteOff(ev.data1, chan, m_chans[chan].sustainPedal);
+            m_mixer->NoteOff(ev.data1, chan, m_chans[chan].sustainPedal);
             break;
 
         // Controller Change
         case 0xB0:
             if (ev.data1 == 1) // Modulation
             {
-                //printf("Mod \n");
+                // printf("Mod \n");
                 m_chans[chan].modulation = ev.data2;
-                //m_mixer->UpdateChannelModulation(chan, ev.data2);
+                // m_mixer->UpdateChannelModulation(chan, ev.data2);
             }
             else if (ev.data1 == 6)
             {
                 if (m_chans[chan].rpnMSB == 0 && m_chans[chan].rpnLSB == 0)
-                // Wir haben RPN 00:00 erkannt -> Pitch Bend Sensitivity
-                m_chans[chan].bendRange = ev.data2; // Wert in Halbtönen (z.B. 12)
+                    // Wir haben RPN 00:00 erkannt -> Pitch Bend Sensitivity
+                    m_chans[chan].bendRange = ev.data2; // Wert in Halbtönen (z.B. 12)
             }
             else if (ev.data1 == 7)
                 m_chans[chan].vol = ev.data2;
@@ -274,7 +344,7 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
                 m_chans[chan].sustainPedal = pedalPressed;
                 if (!pedalPressed)
                     // Wenn Pedal losgelassen wird: Alle wartenden Noten ausklingen lassen
-                    m_mixer->ReleaseSustainedNotes(chan); 
+                    m_mixer->ReleaseSustainedNotes(chan);
             }
             else if (ev.data1 == 100)
                 m_chans[chan].rpnLSB = ev.data2;
@@ -287,7 +357,7 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
                     m_mixer->NoteOff(n, chan, false);
             }
             break;
-        
+
         // Program Change
         case 0xC0:
             m_chans[chan].prog = ev.data1;
@@ -295,9 +365,10 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
         // Pitch Bend
         case 0xE0:
         {
-            uint16_t bendRaw = (ev.data2 << 7) | ev.data1; 
+            uint16_t bendRaw = (ev.data2 << 7) | ev.data1;
             float bendNorm = ((float)bendRaw - 8192.0f) / 8192.0f;
-            if (bendRaw > 8190 && bendRaw < 8194) bendNorm = 0.0f;
+            if (bendRaw > 8190 && bendRaw < 8194)
+                bendNorm = 0.0f;
             m_chans[chan].pitchBend = bendNorm;
             m_mixer->UpdateChannelPitch(chan, bendNorm);
             break;
@@ -311,42 +382,41 @@ void MidiAudioStreamRunner::SeekTo(double targetSeconds)
     for (int chan = 0; chan < 16; chan++)
         for (int n = 0; n < 128; n++)
             m_mixer->NoteOff(n, chan, false);
-    
+
     // 2. State zurücksetzen
     m_parent->m_currentTime = 0.0;
     m_totalFramesDone = 0;
     m_samplesToNext = 0;
-    
+
     // 3. Event-Indices zurücksetzen
     for (size_t i = 0; i < m_eventIdx.size(); i++)
         m_eventIdx[i] = 0;
-    
+
     // 4. Deltas wiederherstellen
     std::vector<MidiTrack> &allTracks = (std::vector<MidiTrack> &)m_midi->GetTracks();
     for (size_t t = 0; t < allTracks.size(); t++)
-    {
         for (size_t e = 0; e < allTracks[t].events.size(); e++)
             allTracks[t].events[e].deltaTicks = allTracks[t].events[e].originalDelta;
-    }
-    
+
     // 5. Akkumulierte Ticks bis Ziel berechnen
     double ppq = (double)m_midi->GetTicksPerQuarter();
-    if (ppq <= 0) ppq = 480;
-    
+    if (ppq <= 0)
+        ppq = 480;
+
     uint32_t currentTempo = 500000; // 120 BPM default
     double currentTime = 0.0;
-    
+
     // Sicherheits-Counter
     int maxIterations = 1000000;
     int iteration = 0;
-    
+
     // 6. Fast-forward durch Events
     while (currentTime < targetSeconds && iteration++ < maxIterations)
     {
         // Finde nächstes Event über alle Tracks
         uint32_t minDelta = 0xFFFFFFFF;
         int minTrack = -1;
-        
+
         for (size_t t = 0; t < allTracks.size(); t++)
         {
             size_t idx = m_eventIdx[t];
@@ -360,22 +430,22 @@ void MidiAudioStreamRunner::SeekTo(double targetSeconds)
                 }
             }
         }
-        
+
         // Keine Events mehr
         if (minTrack == -1)
             break;
-        
+
         // Zeit für dieses Delta berechnen
         double secondsPerTick = ((double)currentTempo / 1000000.0) / ppq;
         double deltaTime = (double)minDelta * secondsPerTick;
-        
+
         // Würden wir überschießen?
         if (currentTime + deltaTime > targetSeconds)
             break;
-        
+
         // Zeit vorspulen
         currentTime += deltaTime;
-        
+
         // Delta von ALLEN Tracks abziehen
         for (size_t t = 0; t < allTracks.size(); t++)
         {
@@ -383,24 +453,22 @@ void MidiAudioStreamRunner::SeekTo(double targetSeconds)
             if (idx < allTracks[t].events.size())
                 allTracks[t].events[idx].deltaTicks -= minDelta;
         }
-        
+
         // Events mit deltaTicks == 0 verarbeiten
         for (size_t t = 0; t < allTracks.size(); t++)
         {
             size_t &idx = m_eventIdx[t];
-            
-            while (idx < allTracks[t].events.size() && 
+
+            while (idx < allTracks[t].events.size() &&
                    allTracks[t].events[idx].deltaTicks == 0)
             {
                 MidiEvent &ev = allTracks[t].events[idx];
                 uint8_t status = ev.type & 0xF0;
-                
+
                 // Nur State-relevante Events verarbeiten (KEINE NoteOns!)
                 if (status == 0xB0 || status == 0xC0 || status == 0xE0)
-                {
                     ExecuteMidiEvent(ev);
-                }
-                else if (ev.type == 0xFF)  // Tempo
+                else if (ev.type == 0xFF) // Tempo
                 {
                     uint32_t mpqn = (ev.channel << 16) | (ev.data1 << 8) | ev.data2;
                     m_ppq = m_midi->GetTicksPerQuarter();
@@ -419,7 +487,7 @@ void MidiAudioStreamRunner::SeekTo(double targetSeconds)
                         m_spt = num / den;
                     }
                 }
-                
+
                 idx++;
             }
         }

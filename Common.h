@@ -99,4 +99,5 @@ std::string SimpleEncode(const char* src);
 /// @brief show buffer content
 void dump_packet(const uint8_t *buffer, int len);
 
+void itoa(uint32_t n, char* s);
 #endif

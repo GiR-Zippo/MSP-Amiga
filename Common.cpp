@@ -234,6 +234,23 @@ void dump_packet(const uint8_t *buffer, int len)
     printf("------------------------------\n");
 }
 
+void itoa(uint32_t n, char* s)
+{
+    int i = 0;
+    if (n == 0) s[i++] = '0';
+    while (n > 0) {
+        s[i++] = (n % 10) + '0';
+        n /= 10;
+    }
+    s[i] = '\0';
+    // String umdrehen
+    for (int j = 0; j < i / 2; j++) {
+        char c = s[j];
+        s[j] = s[i - 1 - j];
+        s[i - 1 - j] = c;
+    }
+}
+
 #ifdef OLD_GCC
 float powf(float base, float exp)
 {
