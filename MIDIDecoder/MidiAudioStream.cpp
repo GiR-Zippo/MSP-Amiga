@@ -71,7 +71,6 @@ int MidiAudioStream::readSamples(short *buffer, int samplesToRead)
 
 bool MidiAudioStream::seek(uint32_t sec)
 {
-    return true;
     if (sec < 0.0) return false;
     if (sec > m_duration) return false;
 
