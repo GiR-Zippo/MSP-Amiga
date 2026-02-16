@@ -52,6 +52,7 @@ struct SampleMatch
     int rootKey;
     int attenuation;
     bool hasLoop;
+    int fineTune;
 };
 
 class SF2Parser

@@ -270,7 +270,7 @@ int16_t *SF2Parser::EnsureSampleLoaded(SFSampleHeader *shdr)
 
 SampleMatch SF2Parser::GetSampleForNote(int bankNum, int presetNum, int midiNote, int velocity)
 {
-    SampleMatch match = {NULL, NULL, 60, false};
+    SampleMatch match = {NULL, NULL, 60, false, 0};
 
     int phdrIdx = -1;
     for (size_t i = 0; i != m_presets.size(); i++)
@@ -341,7 +341,9 @@ SampleMatch SF2Parser::GetSampleForNote(int bankNum, int presetNum, int midiNote
                 int16_t rootOver = -1;
                 int mode = 0;
                 int currentBagInstAtten = 0;
-                int coarseTune = 0;
+                int16_t coarseTune = 0;
+                int16_t fineTune = 0;
+                int16_t scaleTuning = 0;
                 for (int ig = m_iBags[ib].genIdx; ig < m_iBags[ib + 1].genIdx; ig++)
                 {
                     uint16_t op = m_iGens[ig].genOper;
@@ -360,8 +362,12 @@ SampleMatch SF2Parser::GetSampleForNote(int bankNum, int presetNum, int midiNote
                         currentBagInstAtten = (int16_t)val;
                     if (op == 51)  // Coarse Tune
                         coarseTune = (int16_t)val;
+                    if (op == 52)  // Fine Tune
+                        fineTune = val;
                     if (op == 53)
                         sampleIdx = val;
+                    if (op == 56)  // Scale Tuning (in cents per key)
+                        scaleTuning = (int16_t)val;
                     if (op == 58)
                         rootOver = (int16_t)val;
                     if (op == 54)
@@ -384,6 +390,7 @@ SampleMatch SF2Parser::GetSampleForNote(int bankNum, int presetNum, int midiNote
                     match.rootKey = (rootOver != -1) ? rootOver : (int)match.left->originalPitch;
                     match.rootKey += coarseTune;
                     match.attenuation = finalPresetAtten + instAttenuation + currentBagInstAtten;
+                    match.fineTune = fineTune;
                     // mode 0: no loop
                     // mode 1: loop continuously
                     // mode 3: loop during note-on, then play to end

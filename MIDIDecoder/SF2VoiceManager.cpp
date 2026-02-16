@@ -111,52 +111,59 @@ void SF2VoiceManager::NoteOn(const SampleMatch &match, int note, float vol, uint
     }
     else
     {
-        // 1. Ganztöne über die LUT
         int diff = note - match.rootKey + 128;
         if (diff >= 0 && diff < 256)
             pitchRatio = m_pitchTable[diff];
 
-        // 2. Pitch Bend dazu (hier ist powf okay, weil nur 1x pro NoteOn)
+        // 2. Pitch Bend dazu
         if (currentBend != 0.0f)
         {
             float bendInSemitones = currentBend * 2.0f;
             pitchRatio *= powf(2.0f, bendInSemitones / 12.0f);
         }
-        // 3. Fine-Tuning
+
+        // 3. Fine-Tuning vom INSTRUMENT (Generator 52)
+        if (match.fineTune != 0)
+            pitchRatio *= powf(2.0f, (float)match.fineTune / 1200.0f);
+
+        // 4. Fine-Tuning vom SAMPLE (aus Sample-Header)
         if (v.sample->pitchCorrection != 0)
             pitchRatio *= powf(2.0f, (float)v.sample->pitchCorrection / 1200.0f);
     }
 
     // Rate-Korrektur (Sample-Rate des WAVs vs. Mixer-Rate)
     float rateRatio = (float)v.sample->sampleRate / 44100.0f;
-    uint32_t step =  (uint32_t)((pitchRatio * rateRatio) * 65536.0f);
+    uint32_t step = (uint32_t)((pitchRatio * rateRatio) * 65536.0f);
     if (step == 0)
         step = (uint32_t)((rateRatio) * 65536.0f);
 
     v.step = step;
     v.baseStep = v.step;
     v.pos = 0;
-    v.posHigh = 0; 
+    v.posHigh = 0;
 
     // 4. PANNING & VOLUME
     // Attenuation aus LUT (0.1 dB Schritte)
     int cB = match.attenuation;
-    if (cB < 0) cB = 0;
-    if (cB > 1000) cB = 1000;
+    if (cB < 0)
+        cB = 0;
+    if (cB > 1000)
+        cB = 1000;
     float sfAttenuation = 0.5f;
     if (match.attenuation != 0)
     {
-        // Wir begrenzen den Wert nach oben! 
+        // Wir begrenzen den Wert nach oben!
         // Mehr als 250-300 cB (25-30 dB) ist bei normalen Instrumenten selten.
         int safeAtten = match.attenuation;
-        if (safeAtten > 500) safeAtten = 500; 
-        
+        if (safeAtten > 500)
+            safeAtten = 500;
+
         sfAttenuation = m_attenuationTable[safeAtten];
     }
 
     // Gain-Berechnung mit einem kleinen Headroom-Faktor (z.B. 1.5 oder 2.0)
     // Viele Sampler machen das, um die Dämpfung des Soundfonts zu kompensieren.
-    float masterBoost = 1.5f; 
+    float masterBoost = 1.5f;
     float totalGain = vol * sfAttenuation * masterBoost;
 
     // 4. Stereo-Verteilung (Panning)
@@ -255,8 +262,8 @@ void SF2VoiceManager::Mix(short *outBuffer, uint32_t numFrames)
 
         for (uint32_t i = 0; i < frames; i++)
         {
-            uint32_t idx1 = (posHigh << 16) | (pos >> 16);  
-            if (idx1 >= sampleEnd) 
+            uint32_t idx1 = (posHigh << 16) | (pos >> 16);
+            if (idx1 >= sampleEnd)
             {
                 v.active = false;
                 break;

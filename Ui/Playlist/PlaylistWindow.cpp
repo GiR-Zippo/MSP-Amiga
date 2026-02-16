@@ -164,7 +164,7 @@ bool PlaylistWindow::SetupGUI()
 
 int16_t PlaylistWindow::UpdateUi()
 {
-    if (!m_Window)
+    if (!m_opened || !m_Window)
         return -1;
 
     struct IntuiMessage *msg;
@@ -286,25 +286,33 @@ void PlaylistWindow::open()
 
 void PlaylistWindow::close()
 {
+    if (!m_opened)
+        return;
+
+    m_opened = false;
+
+    if (m_Window && m_Window->UserPort)
+    {
+        struct IntuiMessage *msg;
+        Forbid();
+        while ((msg = GT_GetIMsg(m_Window->UserPort)))
+            GT_ReplyIMsg(msg);
+        Permit();
+    }
+    
     if (m_Window)
     {
-        if ((ULONG)m_Window > 0x1000 && 
-            (ULONG)m_Window < 0x80000000 &&
-            TypeOfMem(m_Window))
         CloseWindow(m_Window);
         m_Window = NULL;
     }
     if (m_GadgetList)
     {
-        if ((ULONG)m_GadgetList > 0x1000 && 
-            (ULONG)m_GadgetList < 0x80000000 &&
-            TypeOfMem(m_VisInfo))
         FreeGadgets(m_GadgetList);
         m_GadgetList = NULL;
         for (int i = 0; i < PLAYLIST_MAX; i++)
             m_Gads[i] = NULL;
     }
-    if (m_VisInfo && m_opened)
+    if (m_VisInfo)
     {
         if ((ULONG)m_VisInfo > 0x1000 && 
             (ULONG)m_VisInfo < 0x80000000 &&
@@ -312,7 +320,6 @@ void PlaylistWindow::close()
         FreeVisualInfo(m_VisInfo);
         m_VisInfo = NULL;
     }
-    m_opened = false;
 }
 
 void PlaylistWindow::PlayNext(bool noadvance)
