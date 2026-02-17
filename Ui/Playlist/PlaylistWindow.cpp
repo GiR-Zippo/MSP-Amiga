@@ -175,8 +175,10 @@ int16_t PlaylistWindow::UpdateUi()
         GT_ReplyIMsg(msg);
 
         if (msg->Class == IDCMP_CLOSEWINDOW)
+        {
             close();
-
+            return -1; //raus hier, wenn nix mehr da ist kann man auch auf nix zugreifen
+        }
         if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_MODE*1000)
         {
             m_playlistMode = msgCode;

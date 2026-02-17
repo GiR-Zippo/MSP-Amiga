@@ -29,6 +29,9 @@ MidiAudioStreamRunner::MidiAudioStreamRunner(MidiAudioStream *parent)
         m_chans[i].sustainPedal = false;
         m_chans[i].pitchBend = 0.0f;
         m_chans[i].bendRange = 2.0f;
+        m_chans[i].expression = 127;
+        m_chans[i].bankMSB = 0;
+        m_chans[i].bankLSB = 0;
     }
     m_totalFramesDone = 0.0;
     m_parent = parent;
@@ -298,7 +301,7 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
         case 0x90:
             if (ev.data2 > 0)
             {
-                int bank = (chan == 9) ? 128 : 0;
+                int bank = (chan == 9) ? 128 : (m_chans[chan].bankMSB << 7) | m_chans[chan].bankLSB;
                 SampleMatch m = m_sf2->GetSampleForNote(bank, m_chans[chan].prog, ev.data1, ev.data2);
                 if (m.left)
                 {
@@ -306,7 +309,7 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
                     if (m.right)
                         m_sf2->EnsureSampleLoaded(m.right);
 
-                    float vol = (ev.data2 / 127.0f) * (m_chans[chan].vol / 127.0f);
+                    float vol = (ev.data2 / 127.0f) * (m_chans[chan].vol / 127.0f) * (m_chans[chan].expression / 127.0f);
                     m_mixer->NoteOn(m, ev.data1, vol, m_chans[chan].pan, chan, m_chans[chan].pitchBend);
                 }
             }
@@ -322,6 +325,8 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
 
         // Controller Change
         case 0xB0:
+            if (ev.data1 == 0)   // Bank MSB
+                m_chans[chan].bankMSB = ev.data2;
             if (ev.data1 == 1) // Modulation
             {
                 // printf("Mod \n");
@@ -338,6 +343,10 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
                 m_chans[chan].vol = ev.data2;
             else if (ev.data1 == 10)
                 m_chans[chan].pan = ev.data2;
+            else if (ev.data1 == 11)  // Expression
+                m_chans[chan].expression = ev.data2;
+            else if (ev.data1 == 32)  // Bank LSB
+                m_chans[chan].bankLSB = ev.data2;
             else if (ev.data1 == 64) // SUSTAIN PEDAL
             {
                 bool pedalPressed = (ev.data2 >= 64);

@@ -168,31 +168,25 @@ bool MidiParser::Load(const char *path)
 double MidiParser::CalculateDuration()
 {
     double maxDuration = 0.0;
-
     for (size_t t = 0; t < m_tracks.size(); t++)
     {
         double trackTime = 0.0;
-        uint32_t currentTempo = 500000; // Default 120 BPM
-
+        uint32_t currentTempo = 500000;
         for (size_t e = 0; e < m_tracks[t].events.size(); e++)
         {
             MidiEvent &ev = m_tracks[t].events[e];
             
-            // Delta-Ticks in Zeit umrechnen und addieren
             if (ev.deltaTicks > 0)
             {
                 double secondsPerTick = (double)currentTempo / 1000000.0 / (double)m_ticksPerQuarter;
                 trackTime += (double)ev.deltaTicks * secondsPerTick;
             }
 
-            // War es ein Tempo-Event? (Dein "Mogel"-Event)
-            if (ev.type == 0xFF) 
+            if (ev.type == 0xFF)
                 currentTempo = (ev.channel << 16) | (ev.data1 << 8) | ev.data2;
         }
-
         if (trackTime > maxDuration)
             maxDuration = trackTime;
     }
-
     return maxDuration;
 }
