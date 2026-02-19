@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include <devices/timer.h>
+
 #include <dos/dos.h>
 #include <dos/dostags.h>
 
@@ -33,6 +35,7 @@
 #include <proto/intuition.h>
 #include <proto/gadtools.h>
 #include <proto/graphics.h>
+#include <proto/timer.h>
 
 #include <utility/tagitem.h>
 

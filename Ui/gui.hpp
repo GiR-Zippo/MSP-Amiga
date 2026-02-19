@@ -52,6 +52,9 @@ class MainUi
         /// @param total total time in seconds
         void UpdateTimeDisplay(uint32_t lap, uint32_t total);
 
+        /// @brief Updates the track and artist screen
+        void UpdateDisplayInformation();
+
         /// @brief Set the volumelevel
         /// @param vol vollevel in percent
         void SetVolume(uint16_t vol) {m_VolumeLevel = vol;}

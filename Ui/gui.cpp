@@ -127,25 +127,7 @@ bool MainUi::UpdateUi()
 
         if (msg->Class == IDCMP_CLOSEWINDOW)
             return false;
-        if (msg->Class == IDCMP_INTUITICKS)
-        {
-            if (PlaybackRunner::getInstance()->hasFlag(PFLAG_INIT_DONE))
-            {
-                if (PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING) &&
-                    !PlaybackRunner::getInstance()->hasFlag(PFLAG_SEEK))
-                {
-                    uint32_t currSec = PlaybackRunner::getInstance()->GetStream()->getCurrentSeconds();
-                    uint32_t duration = PlaybackRunner::getInstance()->GetStream()->getDuration();
-                    if (currSec == 0 || duration == 0)
-                        UpdateTimeDisplay(currSec, duration);
-                    else
-                    {
-                        UpdateTimeDisplay(currSec, duration);
-                        UpdateSeeker((int)((currSec * 100) / duration));
-                    }
-                }
-            }
-        }
+        //if (msg->Class == IDCMP_INTUITICKS) Nutze es wenn wir es wieder brauchen
 
         if (msg->Class == IDCMP_GADGETUP)
         {
@@ -216,9 +198,6 @@ bool MainUi::UpdateUi()
             }
         }
     }
-    if (PlaybackRunner::getInstance()->GetStream() != NULL)
-        drawVideoPlaceholder(PlaybackRunner::getInstance()->GetStream()->getTitle(), PlaybackRunner::getInstance()->GetStream()->getArtist());
-
     return true;
 }
 
@@ -252,6 +231,33 @@ void MainUi::UpdateTimeDisplay(uint32_t lap, uint32_t total)
 
     sprintf(timeBuffer, "%s / %s", lapBuf, durBuf);
     GT_SetGadgetAttrs(m_gads[ID_TIME_DISPLAY], m_Window, NULL, GTTX_Text, (Tag)timeBuffer, TAG_DONE);
+}
+
+void MainUi::UpdateDisplayInformation()
+{
+    if (!m_Window)
+        return;
+
+    if (PlaybackRunner::getInstance()->hasFlag(PFLAG_INIT_DONE))
+    {
+        if (PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING) &&
+            !PlaybackRunner::getInstance()->hasFlag(PFLAG_SEEK))
+        {
+            uint32_t currSec = PlaybackRunner::getInstance()->GetStream()->getCurrentSeconds();
+            uint32_t duration = PlaybackRunner::getInstance()->GetStream()->getDuration();
+            if (currSec == 0 || duration == 0)
+                UpdateTimeDisplay(currSec, duration);
+            else
+            {
+                UpdateTimeDisplay(currSec, duration);
+                UpdateSeeker((int)((currSec * 100) / duration));
+            }
+        }
+    }
+
+    if (PlaybackRunner::getInstance()->GetStream() != NULL)
+        drawVideoPlaceholder(PlaybackRunner::getInstance()->GetStream()->getTitle(), PlaybackRunner::getInstance()->GetStream()->getArtist());
+
 }
 
 void MainUi::drawVideoPlaceholder()

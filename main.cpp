@@ -22,6 +22,23 @@ int main()
     if (!MainUi::getInstance()->SetupGUI())
         return -1;
 
+    // --- Timer Setup Start ---
+    struct MsgPort *timerPort = CreateMsgPort();
+    struct timerequest *timerIO = (struct timerequest *)CreateIORequest(timerPort, sizeof(struct timerequest));
+    bool timerOpen = (OpenDevice(TIMERNAME, UNIT_VBLANK, (struct IORequest *)timerIO, 0) == 0);
+
+    auto StartTimer = [&](ULONG secs, ULONG micros)
+    {
+        timerIO->tr_node.io_Command = TR_ADDREQUEST;
+        timerIO->tr_time.tv_secs = secs;
+        timerIO->tr_time.tv_micro = micros;
+        SendIO((struct IORequest *)timerIO);
+    };
+
+    if (timerOpen)
+        StartTimer(0, 500000); // 500ms
+    // --- Timer Setup Ende ---
+
     bool running = true;
     while (running)
     {
@@ -29,8 +46,15 @@ int main()
         ULONG windowSig = MainUi::getInstance()->GetWinSignal();
         ULONG pWindowSig = PlaylistWindow::getInstance()->GetWinSignal();
         ULONG pPlaybackSig = PlaybackRunner::getInstance()->GetSignal();
+        ULONG timerSig = timerPort ? (1L << timerPort->mp_SigBit) : 0;
 
-        ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig);
+        ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig | timerSig);
+
+        if (signals & timerSig)
+        {
+            MainUi::getInstance()->UpdateDisplayInformation();
+            StartTimer(0, 500000);
+        }
 
         if (signals & pPlaybackSig)
         {
@@ -50,6 +74,16 @@ int main()
                 running = false;
         }
     }
+
+    // --- Cleanup Timer ---
+    if (timerOpen)
+    {
+        if (!CheckIO((struct IORequest *)timerIO)) AbortIO((struct IORequest *)timerIO);
+        WaitIO((struct IORequest *)timerIO);
+        CloseDevice((struct IORequest *)timerIO);
+    }
+    if (timerIO) DeleteIORequest((struct IORequest *)timerIO);
+    if (timerPort) DeleteMsgPort(timerPort);
 
     printf("Cleanup: PlaybackRunner\n");
     PlaybackRunner::getInstance()->Cleanup();
