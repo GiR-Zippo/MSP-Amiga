@@ -25,10 +25,10 @@ class AHIPlayback
         void Stop();
 
         /// @brief Sets the volume
-        void SetVolume(uint16_t volume) { m_volume = volume; }
+        void SetVolume(LONG volume) { m_volume = volume; }
 
         /// @brief Get the volume
-        uint16_t GetVolume() { return m_volume; }
+        LONG GetVolume() { return m_volume; }
 
     private:
         /// @brief Fill the audiobuffer
@@ -52,8 +52,10 @@ class AHIPlayback
         // Konstanten für die Konfiguration
         static const uint32_t BUFSIZE = 16384;
         static const uint16_t AHI_TYPE = AHIST_S16S;
-        uint16_t m_volume;
+        LONG m_volume;
+        float m_softwareVolume;  // 0.0 - 1.0
         bool m_pause;
+        bool m_useSoftVol;
 };
 
 #endif

@@ -1,4 +1,4 @@
-![Logo](https://raw.githubusercontent.com/GiR-Zippo/MSP-Amiga/refs/heads/master/.github/images/msp1.png)
+![Logo](https://raw.githubusercontent.com/GiR-Zippo/MSP-Amiga/refs/heads/master/.github/images/msp2.png)
 
 # My Shitty Player
 just a test how to NOT build a audioplayer for an Amiga
@@ -47,6 +47,16 @@ Atm I can't get gcc2.9 to work properly with AAC+ decoding, seems it messes up t
 
 ## ADE
 if you are using ADE and the old gcc2.9 you might need the patched ahi.h proto, a patched bsdsocket.h and AmiSSL headers.
+
+
+## Config file [s:msp.cfg]
+[UseSoftVolume]=0/1 
+
+#0 AHI Volume handling | 1 = SoftVolume for some USB Soundcards
+
+[SoundFontFile]=default.sf2
+
+#the SF2 soundfont to use
 
 
 ## Uses:

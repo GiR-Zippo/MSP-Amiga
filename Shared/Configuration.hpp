@@ -49,3 +49,9 @@ class Configuration
 };
 #define sConfiguration Configuration::getInstance()
 #endif
+
+/*
+[UseSoftVolume]=0/1
+[SoundFontFile]=default.sf2
+
+*/

@@ -19,7 +19,7 @@ enum m_PlayerStates
 struct PlayerArgs
 {
     AudioStream *stream;
-    uint16_t volumeLevel;
+    LONG volumeLevel;
     ULONG songEndMask;
     struct Task *mainTask;
 };
