@@ -3,6 +3,7 @@
 #include "Shared/Configuration.hpp"
 #include "Ui/gui.hpp"
 #include "Ui/Playlist/PlaylistWindow.hpp"
+#include "arexx/arexx.hpp"
 #include "PlaybackRunner.hpp"
 
 /// @brief Helper for our timer
@@ -31,6 +32,9 @@ int main()
     if (!MainUi::getInstance()->SetupGUI())
         return -1;
 
+    if (!sArexx->Init())
+        printf("Error init Arexx\n");
+
     // --- Timer Setup Start ---
     struct MsgPort *timerPort = CreateMsgPort();
     struct timerequest *timerIO = (struct timerequest *)CreateIORequest(timerPort, sizeof(struct timerequest));
@@ -47,9 +51,10 @@ int main()
         ULONG windowSig = MainUi::getInstance()->GetWinSignal();
         ULONG pWindowSig = PlaylistWindow::getInstance()->GetWinSignal();
         ULONG pPlaybackSig = PlaybackRunner::getInstance()->GetSignal();
+        ULONG pArexxSig = sArexx->GetSignal();
         ULONG timerSig = timerPort ? (1L << timerPort->mp_SigBit) : 0;
 
-        ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig | timerSig);
+        ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig | timerSig | pArexxSig);
 
         if (signals & timerSig)
         {
@@ -64,6 +69,10 @@ int main()
             else
                 PlaylistWindow::getInstance()->SetAllowNextSong();
         }
+        //Arexx update
+        if (signals & pArexxSig)
+            sArexx->Update();
+
         // PlaybackWindow update
         if ((signals & pWindowSig) || (signals & pPlaybackSig))
             PlaylistWindow::getInstance()->UpdateUi();
@@ -85,6 +94,9 @@ int main()
     }
     if (timerIO) DeleteIORequest((struct IORequest *)timerIO);
     if (timerPort) DeleteMsgPort(timerPort);
+
+    printf("Cleanup: Arexx\n");
+    sArexx->Cleanup();
 
     printf("Cleanup: PlaybackRunner\n");
     PlaybackRunner::getInstance()->Cleanup();

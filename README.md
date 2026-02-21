@@ -59,6 +59,18 @@ if you are using ADE and the old gcc2.9 you might need the patched ahi.h proto, 
 #the SF2 soundfont to use
 
 
+## aRexx
+ADDRESS SHITTYPLAYER
+
+GETTITLE = gets the title of the song
+
+GETARTIST = gets the artist
+
+GETLAPTIME = get the played time (seconds)
+
+GETDURATION =  get the song length (seconds)
+
+
 ## Uses:
 [MiniMP3](https://github.com/lieff/minimp3)
 

@@ -84,9 +84,7 @@ bool MidiParser::Load(const char *path)
                 status = lastStatus;
             }
             else if (status < 0xF0)
-            {
                 lastStatus = status;
-            }
 
             if (status == 0xFF)
             { // META EVENT
