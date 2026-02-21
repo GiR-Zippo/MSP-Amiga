@@ -42,6 +42,9 @@ MainUi::MainUi()
     m_visInfo = NULL;
     m_AslBase = NULL;
     m_VolumeLevel = 70;
+    m_scrollOffset = 0;
+    m_scrollDirection = true; //left
+    m_isScrolling = false;
 }
 
 bool MainUi::SetupGUI()
@@ -308,20 +311,49 @@ void MainUi::drawVideoPlaceholder(const char *title, const char *artist)
 
 void MainUi::drawCenteredText(struct RastPort *rp, const char *text, int x1, int boxWidth, int yPos)
 {
-    if (text && text[0] != '\0') {
+    if (text && text[0] != '\0')
+    {
         // HIER: Die tatsächliche Länge des Strings ermitteln
         int len = strlen(text); 
-        
-        // TextLength braucht die Länge, um die Pixelbreite zu berechnen
-        int pWidth = TextLength(rp, (CONST_STRPTR)text, len);
 
-        int xPos = x1 + (boxWidth - pWidth) / 2;
-        if (xPos < x1 + 5) xPos = x1 + 5; 
+        //Wenn mehr als 40 Zeichen scroll
+        if (len > 40)
+            m_isScrolling = true;
+        else
+            m_isScrolling = false;
 
-        Move(rp, xPos, yPos);
-        
-        // HIER: Auch Text() muss 'len' bekommen, nicht eine feste Zahl!
-        Text(rp, (CONST_STRPTR)text, len); 
+        //normale anzeige
+        if (!m_isScrolling)
+        {
+            // TextLength braucht die Länge, um die Pixelbreite zu berechnen
+            int pWidth = TextLength(rp, (CONST_STRPTR)text, len);
+
+            int xPos = x1 + (boxWidth - pWidth) / 2;
+            if (xPos < x1 + 5) xPos = x1 + 5; 
+
+            Move(rp, xPos, yPos);
+            
+            // HIER: Auch Text() muss 'len' bekommen, nicht eine feste Zahl!
+            Text(rp, (CONST_STRPTR)text, len); 
+            return;
+        }
+
+         // Wenn wir am Ende sind (Länge minus die 40 sichtbaren)
+        if (m_scrollOffset > (len - 42)) //41 zeichen + 1
+            m_scrollDirection = false;
+        else if (m_scrollOffset <= 0)
+            m_scrollDirection = true;
+
+        // Den Pointer im String verschieben
+        STRPTR scrollPtr = (STRPTR)&text[m_scrollOffset];
+
+        SetAPen(rp, 2);
+        Move(rp, x1 + 5, yPos);
+        Text(rp, scrollPtr, 41); //41 Zeichen bitte
+        if (m_scrollDirection)
+            m_scrollOffset++;
+        else
+            m_scrollOffset--;
     }
 }
 

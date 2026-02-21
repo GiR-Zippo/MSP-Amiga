@@ -63,6 +63,13 @@ class MainUi
         /// @return volume in percent
         uint16_t GetVolume() {return m_VolumeLevel;}
 
+        /// @brief Resets the scroller
+        void ResetScroller()
+        {
+            m_scrollOffset = 0;
+            m_scrollDirection = true; //left
+            m_isScrolling = false;
+        }
     private:
         static MainUi* instance;
         MainUi(); // Private constructor
@@ -93,5 +100,10 @@ class MainUi
         struct Gadget*  m_gads[PLAYER_GADS_COUNT];
         void *          m_visInfo;
         uint16_t        m_VolumeLevel;
+
+        /* scroller */
+        int m_scrollOffset;
+        bool m_scrollDirection;
+        bool m_isScrolling;
 };
 #endif

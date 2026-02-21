@@ -45,7 +45,7 @@ class Configuration
         Configuration& operator=(const Configuration&); // Prevent assignment
         
         ConfigEntry m_configEntries[20];
-        int m_numConfigEntries = 0;
+        int m_numConfigEntries;
 };
 #define sConfiguration Configuration::getInstance()
 #endif

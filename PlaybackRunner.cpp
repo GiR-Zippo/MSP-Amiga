@@ -108,6 +108,7 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
                 setFlag(PFLAG_INIT_DONE);
                 setFlag(PFLAG_PLAYING);
                 removeFlag(PFLAG_PAUSE);
+                MainUi::getInstance()->ResetScroller();
             }
         }
     }

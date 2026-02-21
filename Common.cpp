@@ -142,6 +142,17 @@ std::string SimpleEncode(const char *src)
     return out;
 }
 
+void writeToBuffer(char *outbuf, const char *input, int outbufSize)
+{
+    if (outbuf == NULL || input == NULL || outbufSize == 0)
+        return;
+            
+    if (input[0] == '\0')
+        return;
+    strncpy(outbuf, input, outbufSize);
+    outbuf[outbufSize] = '\0';
+}
+
 // Bleibt so, dann compiled es
 size_t wcsrtombs(char *dest, const wchar_t **src, size_t len, mbstate_t *ps)
 {
@@ -254,6 +265,19 @@ void itoa(uint32_t n, char* s)
 #ifdef OLD_GCC
 float powf(float base, float exp)
 {
-    return (float)pow(base, exp);
+    // Umwandlung in Bit-Repräsentation für schnellen Log2
+    union { float f; int i; } u = { base };
+    union { float f; int i; } res;
+
+    // Berechnet log2(base) auf Bit-Ebene
+    float log2_base = (float)(u.i - 1064866816) * 1.1920928955078125e-7f;
+    
+    // exp * log2(base)
+    float e_log2 = exp * log2_base;
+
+    // Zurückwandeln (entspricht 2^x)
+    res.i = (int)(e_log2 * 8388608.0f + 1064866816.0f);
+    
+    return res.f;
 }
 #endif

@@ -12,7 +12,8 @@ extern "C"
 
 MP3Stream::MP3Stream() : m_initialized(false)
 {
-
+    writeToBuffer(m_title, "Unknown Title");
+    writeToBuffer(m_artist, "Unknown Artist");
 }
 
 MP3Stream::~MP3Stream()
@@ -26,20 +27,10 @@ bool MP3Stream::open(const char *filename)
     ID3Meta meta = ID3V2ReaderWriter::ReadID3MetaData(filename);
     m_duration = (uint32_t)meta.duration;
     if (!meta.title.empty())
-    {
-        strncpy(m_title, meta.title.c_str(), sizeof(m_title) - 1);
-        m_title[sizeof(m_title) - 1] = '\0'; // Sicher ist sicher
-    }
-    else
-        strcpy(m_title, "Unknown Title");
+        writeToBuffer(m_title, meta.title.c_str());
 
     if (!meta.artist.empty())
-    {
-        strncpy(m_artist, meta.artist.c_str(), sizeof(m_artist) - 1);
-        m_artist[sizeof(m_artist) - 1] = '\0';
-    }
-    else
-        strcpy(m_artist, "Unknown Artist");
+        writeToBuffer(m_artist, meta.artist.c_str());
 
     if (m_initialized)
     {

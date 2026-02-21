@@ -5,13 +5,13 @@
 void MidiAudioStreamRunner::Run(MidiAudioStream *parent)
 {
     MidiAudioStreamRunner worker(parent);
-    strcpy(parent->m_title, "...");
+    writeToBuffer(parent->m_title, "...");
     if (worker.open(parent->m_file.c_str()))
     {
         printf("File open %s\n", parent->m_file.c_str());
         std::vector<std::string> strings = Split(parent->m_file, ":");
         strings = Split(strings.back(), "/");
-        strcpy(parent->m_title, strings.back().c_str());
+        writeToBuffer(parent->m_title, strings.back().c_str());
         worker.TaskLoop();
     }
 }
@@ -46,20 +46,20 @@ MidiAudioStreamRunner::~MidiAudioStreamRunner()
 
 bool MidiAudioStreamRunner::open(const char *file)
 {
-    strcpy(m_parent->m_artist, "Loading Soundfont...\0");
+    writeToBuffer(m_parent->m_artist, "Loading Soundfont...");
     if (!m_sf2->Load(sConfiguration->GetConfigString("SoundFontFile", "default.sf2")))
     {
-        strcpy(m_parent->m_artist, "Error loading SoundFont!\0");
+        writeToBuffer(m_parent->m_artist, "Error loading SoundFont!");
         return false;
     }
 
-    strcpy(m_parent->m_artist, "Loading Midi...\0");
+    writeToBuffer(m_parent->m_artist, "Loading Midi...");
     if (!m_midi->Load(file))
     {
-        strcpy(m_parent->m_artist, "Error loading Midi!\0");
+        writeToBuffer(m_parent->m_artist, "Error loading Midi!");
         return false;
     }
-    strcpy(m_parent->m_artist, "Preloading Samples...\0");
+    writeToBuffer(m_parent->m_artist, "Preloading Samples...");
     PreloadSamples();
 
     m_parent->m_duration = m_midi->CalculateDuration();
@@ -80,7 +80,7 @@ bool MidiAudioStreamRunner::open(const char *file)
     // m_spt = (44100.0 * 60.0) / (120.0 * m_midi.GetTicksPerQuarter());
     m_samplesToNext = 0;
 
-    strcpy(m_parent->m_artist, "Playing Midi...\0");
+    writeToBuffer(m_parent->m_artist, "Playing Midi...");
     return true;
 }
 

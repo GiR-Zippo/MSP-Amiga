@@ -8,9 +8,9 @@
 
 struct MidiChanState
 {
-    uint8_t vol, pan, prog, modulation, rpnMSB, rpnLSB, bendRange, bankMSB, bankLSB, expression;
+    uint8_t vol, pan, prog, modulation, rpnMSB, rpnLSB, bankMSB, bankLSB, expression;
     bool sustainPedal;
-    float pitchBend;
+    float pitchBend, bendRange;
     MidiChanState() : vol(100), pan(64), prog(0) {}
 };
 

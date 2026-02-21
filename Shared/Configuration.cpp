@@ -55,4 +55,5 @@ void Configuration::SaveConfig()
 
 Configuration::Configuration()
 {
+    m_numConfigEntries = 0;
 }

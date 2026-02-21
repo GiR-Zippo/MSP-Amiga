@@ -13,8 +13,8 @@ MidiAudioStream::MidiAudioStream()
     m_currentTime =0;
     m_duration = 0;
     m_seekSeconds = -1;
-    strcpy(m_title, "Unknown Title");
-    strcpy(m_artist, "Unknown Artist");
+    writeToBuffer(m_title, "Unknown Title");
+    writeToBuffer(m_artist, "Unknown Artist");
 }
 
 MidiAudioStream::~MidiAudioStream()

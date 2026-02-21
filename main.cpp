@@ -5,6 +5,15 @@
 #include "Ui/Playlist/PlaylistWindow.hpp"
 #include "PlaybackRunner.hpp"
 
+/// @brief Helper for our timer
+void StartTimer(struct timerequest *timerIO, ULONG secs, ULONG micros)
+{
+    timerIO->tr_node.io_Command = TR_ADDREQUEST;
+    timerIO->tr_time.tv_secs    = secs;
+    timerIO->tr_time.tv_micro   = micros;
+    SendIO((struct IORequest *)timerIO);
+}
+
 /* -------------------------------------------------------------------------- */
 /* main routine                                                               */
 /* -------------------------------------------------------------------------- */
@@ -25,18 +34,10 @@ int main()
     // --- Timer Setup Start ---
     struct MsgPort *timerPort = CreateMsgPort();
     struct timerequest *timerIO = (struct timerequest *)CreateIORequest(timerPort, sizeof(struct timerequest));
-    bool timerOpen = (OpenDevice(TIMERNAME, UNIT_VBLANK, (struct IORequest *)timerIO, 0) == 0);
-
-    auto StartTimer = [&](ULONG secs, ULONG micros)
-    {
-        timerIO->tr_node.io_Command = TR_ADDREQUEST;
-        timerIO->tr_time.tv_secs = secs;
-        timerIO->tr_time.tv_micro = micros;
-        SendIO((struct IORequest *)timerIO);
-    };
+    bool timerOpen = (OpenDevice((CONST_STRPTR)TIMERNAME, UNIT_VBLANK, (struct IORequest *)timerIO, 0) == 0);
 
     if (timerOpen)
-        StartTimer(0, 500000); // 500ms
+        StartTimer(timerIO, 0, 500000); // 500ms
     // --- Timer Setup Ende ---
 
     bool running = true;
@@ -53,7 +54,7 @@ int main()
         if (signals & timerSig)
         {
             MainUi::getInstance()->UpdateDisplayInformation();
-            StartTimer(0, 500000);
+            StartTimer(timerIO, 0, 500000);
         }
 
         if (signals & pPlaybackSig)
