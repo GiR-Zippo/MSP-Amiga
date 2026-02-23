@@ -6,21 +6,20 @@ SettingsUi *SettingsUi::instance = NULL;
 
 static struct TagItem buttonTags[] = {{GTTX_Border, TRUE}, {TAG_DONE, 0}};
 static struct GadgetDef pageOneGadgets[] =
-{
-    {CHECKBOX_KIND, 160, 20, 120, 20, "Soft Volume", SETTINGS_SOFTVOL, buttonTags}
-};
+    {
+        {CHECKBOX_KIND, 160, 10, 120, 20, "Soft Volume", SETTINGS_SOFTVOL, buttonTags}};
 
 static struct GadgetDef pageTwoGadgets[] =
-{
-    {STRING_KIND, 160, 20, 130, 20, "Max Voices", SETTINGS_MIDI_VOICES,  buttonTags},
-    {STRING_KIND, 160, 40, 130, 20, "SF2",        SETTINGS_MIDI_SF,      buttonTags},
-    {BUTTON_KIND, 290, 40, 10, 20, "^",          SETTINGS_MIDI_SF_OPEN, buttonTags},
+    {
+        {STRING_KIND, 160, 10, 130, 20, "Max Voices", SETTINGS_MIDI_VOICES, buttonTags},
+        {STRING_KIND, 160, 30, 130, 20, "SF2", SETTINGS_MIDI_SF, buttonTags},
+        {BUTTON_KIND, 290, 30, 10, 20, "^", SETTINGS_MIDI_SF_OPEN, buttonTags},
 };
-
 
 SettingsUi::SettingsUi() : m_Window(NULL), m_Port(NULL), m_VisInfo(NULL),
                            m_MainGlist(NULL), m_PageGlist(NULL), m_CurrentTab(0)
 {
+    m_topOffset = 20;
 }
 
 SettingsUi::~SettingsUi()
@@ -42,6 +41,21 @@ bool SettingsUi::SetupGUI()
         UnlockPubScreen(NULL, scr);
         return false;
     }
+    m_topOffset = scr->WBorTop + scr->Font->ta_YSize + 1;
+    m_Window = OpenWindowTags(NULL,
+                              WA_Title, (Tag) "Settings",
+                              WA_InnerWidth, 300,
+                              WA_InnerHeight, (Tag)(180+m_topOffset),
+                              WA_Gadgets, (Tag)NULL,
+                              WA_IDCMP, IDCMP_GADGETUP | IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW,
+                              WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
+                              WA_PubScreen, (Tag)scr,
+                              WA_NewLookMenus, TRUE,
+                              TAG_DONE);
+
+    UnlockPubScreen(NULL, scr);
+    if (!m_Window)
+        return false;
 
     struct Gadget *context = CreateContext(&m_MainGlist);
     struct NewGadget ng;
@@ -50,9 +64,9 @@ bool SettingsUi::SetupGUI()
 
     for (int i = 0; i < 2; i++)
     {
-        ng.ng_LeftEdge = 4;            // Immer ganz links
-        ng.ng_TopEdge = 20 + (i * 18); // Untereinander (14px Höhe + 4px Abstand)
-        ng.ng_Width = 80;              // Feste Breite für die Sidebar
+        ng.ng_LeftEdge = 4;                     // Immer ganz links
+        ng.ng_TopEdge = m_topOffset+2 + (i * 18); // Untereinander (14px Höhe + 4px Abstand)
+        ng.ng_Width = 80;                       // Feste Breite für die Sidebar
         ng.ng_Height = 14;
         ng.ng_GadgetText = (STRPTR)labels[i];
         ng.ng_GadgetID = ID_TAB_BASE + i;
@@ -62,27 +76,12 @@ bool SettingsUi::SetupGUI()
         last = CreateGadget(BUTTON_KIND, last, &ng, TAG_DONE);
     }
 
-    m_Window = OpenWindowTags(NULL,
-                              WA_Title, (Tag) "Settings",
-                              WA_InnerWidth, 300,
-                              WA_InnerHeight, 200,
-                              WA_Gadgets, (Tag)m_MainGlist,
-                              WA_IDCMP, IDCMP_GADGETUP | IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW,
-                              WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
-                              WA_PubScreen, (Tag)scr,
-                              WA_NewLookMenus, TRUE,
-                              TAG_DONE);
+    AddGList(m_Window, m_MainGlist, -1, -1, NULL);
+    RefreshGList(m_MainGlist, m_Window, NULL, -1);
+    GT_RefreshWindow(m_Window, NULL);
+    createPage(0); // Standardmäßig erste Seite laden
 
-    UnlockPubScreen(NULL, scr);
-
-    if (m_Window)
-    {
-        GT_RefreshWindow(m_Window, NULL);
-        createPage(0); // Standardmäßig erste Seite laden
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 void SettingsUi::renderDecorations()
@@ -105,7 +104,7 @@ void SettingsUi::createPage(uint16_t pageNum)
     if (m_CurrentTab == 0) // Audio
         createGads(context, SETTINGS_PAGETWO, pageOneGadgets);
     else if (m_CurrentTab == 1) // Midi
-        createGads(context, SETTINGS_MAX-SETTINGS_PAGETWO-1, pageTwoGadgets);
+        createGads(context, SETTINGS_MAX - SETTINGS_PAGETWO - 1, pageTwoGadgets);
 
     if (m_PageGlist)
     {
@@ -147,13 +146,13 @@ void SettingsUi::createGads(Gadget *context, int end, GadgetDef *defs)
     for (int i = 0; i < end; i++)
     {
         ng.ng_LeftEdge = defs[i].x;
-        ng.ng_TopEdge = defs[i].y;
+        ng.ng_TopEdge = defs[i].y + m_topOffset;
         ng.ng_Width = defs[i].w;
         ng.ng_Height = defs[i].h;
         ng.ng_GadgetText = (CONST_STRPTR)defs[i].label;
         ng.ng_GadgetID = defs[i].id;
 
-        //def values
+        // def values
         if (defs[i].id == SETTINGS_SOFTVOL)
         {
             context = CreateGadget(defs[i].kind, context, &ng,
@@ -211,7 +210,7 @@ void SettingsUi::UpdateUi()
             {
                 char buffer[5];
                 struct StringInfo *si = (struct StringInfo *)gad->SpecialInfo;
-                strcpy(buffer, (const char*)si->Buffer);
+                strcpy(buffer, (const char *)si->Buffer);
                 sConfiguration->SetConfigString(configKeys[CONF_MIDI_VOICES], buffer);
                 sConfiguration->SaveConfig();
             }
@@ -219,7 +218,7 @@ void SettingsUi::UpdateUi()
             {
                 char buffer[256];
                 struct StringInfo *si = (struct StringInfo *)gad->SpecialInfo;
-                strcpy(buffer, (const char*)si->Buffer);
+                strcpy(buffer, (const char *)si->Buffer);
                 sConfiguration->SetConfigString(configKeys[CONF_SOUNDFONT], buffer);
                 sConfiguration->SaveConfig();
             }

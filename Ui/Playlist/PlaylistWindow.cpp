@@ -29,13 +29,13 @@ static struct TagItem buttonTags[] = {
 
 static struct GadgetDef playlistGadgets[] = {
     // Kind           X     Y       W       H       Label       ID                  Tags
-    {CYCLE_KIND,     10,    20,     230,    20,     "Mode",     PLAYLIST_MODE,   buttonTags},
-    {STRING_KIND,    10,    45,     230,    20,     "",         PLAYLIST_SEARCH, buttonTags},
-    {LISTVIEW_KIND,  10,    70,     230,    200,    "",         PLAYLIST_LIST,   buttonTags},
-    {BUTTON_KIND,    10,    265,    50,     20,     "Add",      PLAYLIST_ADD,    buttonTags},
-    {BUTTON_KIND,    60,    265,    50,     20,     "Remove",   PLAYLIST_REMOVE, buttonTags},
-    {BUTTON_KIND,    110,   265,    50,     20,     "Clear",    PLAYLIST_CLEAR,  buttonTags},
-    {CYCLE_KIND,     160,   265,    80,     20,     "",         PLAYLIST_PMODE,  buttonTags},
+    {CYCLE_KIND,     10,     5,     230,    20,     "Mode",     PLAYLIST_MODE,   buttonTags},
+    {STRING_KIND,    10,    30,     230,    20,     "",         PLAYLIST_SEARCH, buttonTags},
+    {LISTVIEW_KIND,  10,    55,     230,    200,    "",         PLAYLIST_LIST,   buttonTags},
+    {BUTTON_KIND,    10,    255,    50,     20,     "Add",      PLAYLIST_ADD,    buttonTags},
+    {BUTTON_KIND,    60,    255,    50,     20,     "Remove",   PLAYLIST_REMOVE, buttonTags},
+    {BUTTON_KIND,    110,   255,    50,     20,     "Clear",    PLAYLIST_CLEAR,  buttonTags},
+    {CYCLE_KIND,     160,   255,    80,     20,     "",         PLAYLIST_PMODE,  buttonTags},
 };
 
 PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
@@ -52,6 +52,7 @@ PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
     m_lastClickSeconds = 0;
     m_lastClickMicros = 0;
     m_searchBuffer[0] = '\0';
+    m_topOffset = 20;
     srand(time(NULL));
 }
 
@@ -67,13 +68,32 @@ bool PlaylistWindow::SetupGUI()
         UnlockPubScreen(NULL, scr);
         return false;
     }
+    m_topOffset = scr->WBorTop + scr->Font->ta_YSize + 1;
+    m_Window = OpenWindowTags(NULL,
+                              WA_Left, 400L,
+                              WA_Top, 100L,
+                              WA_Width, 250L,
+                              WA_Height, (Tag)(290 + m_topOffset),
+                              WA_Title, (ULONG) "Playlist",
+                              WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_GADGETUP | IDCMP_MOUSEBUTTONS | IDCMP_INTUITICKS,
+                              WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
+                              WA_PubScreen, (Tag)scr,
+                              WA_NewLookMenus, TRUE,
+                              TAG_DONE);
+
+    UnlockPubScreen(NULL, scr);
+    if (!m_Window)
+    {
+        m_VisInfo = NULL;
+        m_GadgetList = NULL;
+        return false;
+    }
 
     m_GadgetList = NULL;
     struct Gadget *context = CreateContext(&m_GadgetList);
     if (!context)
     {
         FreeVisualInfo(m_VisInfo);
-        UnlockPubScreen(NULL, scr);
         m_VisInfo = NULL;
         m_GadgetList = NULL;
         return false;
@@ -86,7 +106,7 @@ bool PlaylistWindow::SetupGUI()
     for (int i = 0; i < PLAYLIST_MAX; i++)
     {
         ng.ng_LeftEdge = playlistGadgets[i].x;
-        ng.ng_TopEdge = playlistGadgets[i].y;
+        ng.ng_TopEdge = playlistGadgets[i].y+m_topOffset;
         ng.ng_Width = playlistGadgets[i].w;
         ng.ng_Height = playlistGadgets[i].h;
         ng.ng_GadgetText = (CONST_STRPTR)playlistGadgets[i].label;
@@ -133,34 +153,15 @@ bool PlaylistWindow::SetupGUI()
         printf("Fehler: CreateGadget(LISTVIEW_KIND) liefert NULL!\n");
         FreeGadgets(m_GadgetList);
         FreeVisualInfo(m_VisInfo);
-        UnlockPubScreen(NULL, scr);
         return false;
     }
-    m_Window = OpenWindowTags(NULL,
-                              WA_Left, 400L,
-                              WA_Top, 100L,
-                              WA_InnerWidth, 240L,
-                              WA_InnerHeight, 280L,
-                              WA_Title, (ULONG) "Playlist",
-                              WA_Gadgets, (Tag)m_GadgetList, // Kontext-Kopf
-                              WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_GADGETUP | IDCMP_MOUSEBUTTONS | IDCMP_INTUITICKS,
-                              WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
-                              WA_PubScreen, (Tag)scr,
-                              WA_NewLookMenus, TRUE,
-                              TAG_DONE);
 
-    UnlockPubScreen(NULL, scr);
-
-    if (m_Window)
-    {
-        this->m_Port = m_Window->UserPort;
-        GT_RefreshWindow(m_Window, NULL);
-        m_opened = true;
-        return true;
-    }
-    m_VisInfo = NULL;
-    m_GadgetList = NULL;
-    return false;
+    this->m_Port = m_Window->UserPort;
+    AddGList(m_Window, m_GadgetList, -1, -1, NULL);
+    RefreshGList(m_GadgetList, m_Window, NULL, -1);
+    GT_RefreshWindow(m_Window, NULL);
+    m_opened = true;
+    return true;
 }
 
 int16_t PlaylistWindow::UpdateUi()

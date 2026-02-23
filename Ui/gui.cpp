@@ -24,14 +24,14 @@ static struct TagItem buttonTags[] = {
 
 static struct GadgetDef playerGadgets[] = {
     // Kind         X    Y    W    H    Label    ID               Tags
-    { SLIDER_KIND,  20, 142, 260, 12,   "",      ID_SEEKER,       seekerTags },
-    { SLIDER_KIND, 285,  30,  10, 124,  "",      ID_VOLUME,       volTags },
-    { BUTTON_KIND,  20, 160,  50,  20,  "Play",  ID_PLAY,         buttonTags },
-    { BUTTON_KIND,  70, 160,  50,  20,  "Pause", ID_PAUSE,        buttonTags },
-    { BUTTON_KIND, 120, 160,  50,  20,  "Stop",  ID_STOP,         buttonTags },
-    { BUTTON_KIND, 170, 160,  50,  20,  "Open",  ID_OPEN,         buttonTags },
-    { BUTTON_KIND, 227, 160,  50,  20,  "PList", ID_PLAYLIST,     buttonTags },
-    { TEXT_KIND,    20, 125, 260, 14,   "",      ID_TIME_DISPLAY, timeTags }
+    { SLIDER_KIND,  20, 122, 260, 12,   "",      ID_SEEKER,       seekerTags },
+    { SLIDER_KIND, 285,  10,  10, 124,  "",      ID_VOLUME,       volTags },
+    { BUTTON_KIND,  20, 140,  50,  20,  "Play",  ID_PLAY,         buttonTags },
+    { BUTTON_KIND,  70, 140,  50,  20,  "Pause", ID_PAUSE,        buttonTags },
+    { BUTTON_KIND, 120, 140,  50,  20,  "Stop",  ID_STOP,         buttonTags },
+    { BUTTON_KIND, 170, 140,  50,  20,  "Open",  ID_OPEN,         buttonTags },
+    { BUTTON_KIND, 227, 140,  50,  20,  "PList", ID_PLAYLIST,     buttonTags },
+    { TEXT_KIND,    20, 105, 260, 14,   "",      ID_TIME_DISPLAY, timeTags }
 };
 
 static struct MenuDef mainMenu[] = {
@@ -53,6 +53,7 @@ MainUi::MainUi()
     m_scrollOffset = 0;
     m_scrollDirection = true; //left
     m_isScrolling = false;
+    m_topOffset = 20;
 }
 
 bool MainUi::SetupGUI()
@@ -69,9 +70,31 @@ bool MainUi::SetupGUI()
         return false;
 
     m_visInfo = GetVisualInfo(scr, TAG_END);
+    if (!m_visInfo)
+    {
+        UnlockPubScreen(NULL, scr);
+        return false;
+    }
+
+    // Fenster öffnen
+    m_topOffset = scr->WBorTop + scr->Font->ta_YSize + 1;
+    m_Window = OpenWindowTags(NULL,
+                         WA_Title, (Tag) "My Shitty Player",
+                         WA_Left, 50,
+                         WA_Top, 50,
+                         WA_Width, 300,
+                         WA_Height, (Tag)(170 + m_topOffset),
+                         WA_IDCMP, IDCMP_GADGETUP | IDCMP_GADGETDOWN | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS | IDCMP_CLOSEWINDOW | IDCMP_MENUPICK,
+                         WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
+                         WA_PubScreen, (Tag)scr,
+                         WA_NewLookMenus, TRUE,
+                         TAG_END);
+    UnlockPubScreen(NULL, scr);
+    if (!m_Window)
+        return false;
+
     struct NewGadget ng;
     struct Gadget *context;
-
     context = CreateContext(&m_gList);
 
     // Gemeinsame Einstellungen für alle Gadgets
@@ -83,7 +106,7 @@ bool MainUi::SetupGUI()
     for (int i = 0; i < PLAYER_GADS_COUNT; i++)
     {
         ng.ng_LeftEdge   = playerGadgets[i].x;
-        ng.ng_TopEdge    = playerGadgets[i].y;
+        ng.ng_TopEdge    = playerGadgets[i].y+m_topOffset;
         ng.ng_Width      = playerGadgets[i].w;
         ng.ng_Height     = playerGadgets[i].h;
         ng.ng_GadgetText = (CONST_STRPTR)playerGadgets[i].label;
@@ -104,30 +127,12 @@ bool MainUi::SetupGUI()
             context = m_gads[i];
     }
 
-    // Fenster öffnen
-    m_Window = OpenWindowTags(NULL,
-                         WA_Title, (Tag) "My Shitty Player",
-                         WA_Left, 50,
-                         WA_Top, 50,
-                         WA_Width, 300,
-                         WA_Height, 190,
-                         WA_IDCMP, IDCMP_GADGETUP | IDCMP_GADGETDOWN | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS | IDCMP_CLOSEWINDOW | IDCMP_MENUPICK,
-                         WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
-                         WA_PubScreen, (Tag)scr,
-                         WA_NewLookMenus, TRUE,
-                         WA_Gadgets, (Tag)m_gList,
-                         TAG_END);
-
-
     // Menu builder
     Menu *menu = buildMenus(scr, mainMenu, m_visInfo);
     SetMenuStrip(m_Window, menu);
 
-    UnlockPubScreen(NULL, scr);
-
-    if (!m_Window)
-        return false;
-
+    AddGList(m_Window, m_gList, -1, -1, NULL);
+    RefreshGList(m_gList, m_Window, NULL, -1);
     GT_RefreshWindow(m_Window, NULL);
     drawVideoPlaceholder();
     return true;
@@ -344,11 +349,11 @@ void MainUi::drawVideoPlaceholder()
 
     // Rahmen zeichnen
     SetAPen(rp, 1); // Meist Schwarz/Blau je nach Palette
-    RectFill(rp, 20, 30, 280, 120);
+    RectFill(rp, 20, 10+m_topOffset, 280, 120);
 
     // Kleiner Text-Indikator
     SetAPen(rp, 2); // Weiß/Gelb
-    Move(rp, 110, 80);
+    Move(rp, 110, 60+m_topOffset);
     Text(rp, "AAC Player", 10);
 }
 
@@ -358,7 +363,7 @@ void MainUi::drawVideoPlaceholder(const char *title, const char *artist)
 
     struct RastPort *rp = m_Window->RPort;
 
-    int x1 = 20, y1 = 30;
+    int x1 = 20, y1 = 10+m_topOffset;
     int x2 = 280, y2 = 120;
     int boxWidth = x2 - x1;
 
@@ -370,8 +375,8 @@ void MainUi::drawVideoPlaceholder(const char *title, const char *artist)
     SetAPen(rp, 2); 
 
     // Aufruf der Hilfsmethode (Ganz ohne auto/Lambda)
-    drawCenteredText(rp, title, x1, boxWidth, 75);
-    drawCenteredText(rp, artist, x1, boxWidth, 100);
+    drawCenteredText(rp, title, x1, boxWidth, 55+m_topOffset);
+    drawCenteredText(rp, artist, x1, boxWidth, 80+m_topOffset);
 
     // 3. Rahmen
     SetAPen(rp, 3);

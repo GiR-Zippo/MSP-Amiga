@@ -49,6 +49,7 @@ class SettingsUi
         struct Gadget*  m_MainGlist; // Die Tabs (bleiben)
         struct Gadget*  m_PageGlist; // Der Inhalt (wechselt)
         uint16_t        m_CurrentTab;
+        int             m_topOffset;
 };
 #define sSettingsUi SettingsUi::getInstance()
 #endif

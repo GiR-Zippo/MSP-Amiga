@@ -150,7 +150,8 @@ class PlaylistWindow
         void*           m_VisInfo;      // The VisualInfo
         struct Gadget*  m_GadgetList;   // The GadgetList
         struct Gadget*  m_Gads[PLAYLIST_MAX];
-        
+        int             m_topOffset;
+
         struct List     m_SongList;     // Die sichtbare SongListe
         struct List     m_HiddenList;   // Die Shadowliste
         int32_t         m_SelectedIndex;// The selected index of our songlist

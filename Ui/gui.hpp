@@ -108,6 +108,7 @@ class MainUi
         struct Gadget*  m_gList;
         struct Gadget*  m_gads[PLAYER_GADS_COUNT];
         void *          m_visInfo;
+        int             m_topOffset;
         uint16_t        m_VolumeLevel;
 
         /* scroller */
