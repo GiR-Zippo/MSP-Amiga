@@ -18,6 +18,23 @@ struct GadgetDef
     struct TagItem *tags;
 };
 
+/// @brief Default Menu struct
+struct MenuDef
+{
+    uint8_t     type;      // NM_TITLE, NM_ITEM oder NM_SUB
+    const char* label;     // Text im Menu
+    const char* shortcut;  // Tastenkuerzel (z.B. "Q")
+    uint16_t    id;        // interne ID für das Event-Handling
+    uint32_t    flags;
+};
+
+/// @brief TabStrip strucs
+struct TabDef
+{
+    const char* label;
+    uint16_t    id;
+};
+
 class SharedUiFunctions
 {
     public:

@@ -3,6 +3,7 @@
 #include "Shared/Configuration.hpp"
 #include "Ui/gui.hpp"
 #include "Ui/Playlist/PlaylistWindow.hpp"
+#include "Ui/Settings/SettingsUi.hpp"
 #include "arexx/arexx.hpp"
 #include "PlaybackRunner.hpp"
 
@@ -51,10 +52,11 @@ int main()
         ULONG windowSig = MainUi::getInstance()->GetWinSignal();
         ULONG pWindowSig = PlaylistWindow::getInstance()->GetWinSignal();
         ULONG pPlaybackSig = PlaybackRunner::getInstance()->GetSignal();
+        ULONG pSettings = sSettingsUi->GetWinSignal();
         ULONG pArexxSig = sArexx->GetSignal();
         ULONG timerSig = timerPort ? (1L << timerPort->mp_SigBit) : 0;
 
-        ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig | timerSig | pArexxSig);
+        ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig | timerSig | pArexxSig | pSettings);
 
         if (signals & timerSig)
         {
@@ -77,6 +79,10 @@ int main()
         if ((signals & pWindowSig) || (signals & pPlaybackSig))
             PlaylistWindow::getInstance()->UpdateUi();
 
+        // PlaybackWindow update
+        if (signals & pSettings)
+            sSettingsUi->UpdateUi();
+
         // MainUi update
         if (signals & windowSig)
         {
@@ -97,6 +103,9 @@ int main()
 
     printf("Cleanup: Arexx\n");
     sArexx->Cleanup();
+
+    printf("Cleanup: Settings\n");
+    sSettingsUi->CloseGUI();
 
     printf("Cleanup: PlaybackRunner\n");
     PlaybackRunner::getInstance()->Cleanup();

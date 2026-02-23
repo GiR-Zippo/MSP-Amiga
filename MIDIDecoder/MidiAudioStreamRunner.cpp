@@ -20,7 +20,7 @@ MidiAudioStreamRunner::MidiAudioStreamRunner(MidiAudioStream *parent)
 {
     m_sf2 = new SF2Parser();
     m_midi = new MidiParser();
-    m_mixer = new SF2VoiceManager(128); // 128 voices
+    m_mixer = new SF2VoiceManager(sConfiguration->GetConfigInt(configKeys[CONF_MIDI_VOICES], 128)); // 128 voices
     for (int i = 0; i < 16; i++)
     {
         m_chans[i].vol = 100;
@@ -47,7 +47,7 @@ MidiAudioStreamRunner::~MidiAudioStreamRunner()
 bool MidiAudioStreamRunner::open(const char *file)
 {
     writeToBuffer(m_parent->m_artist, "Loading Soundfont...");
-    if (!m_sf2->Load(sConfiguration->GetConfigString("SoundFontFile", "default.sf2")))
+    if (!m_sf2->Load(sConfiguration->GetConfigString(configKeys[CONF_SOUNDFONT], "default.sf2")))
     {
         writeToBuffer(m_parent->m_artist, "Error loading SoundFont!");
         return false;

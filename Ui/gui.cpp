@@ -2,6 +2,7 @@
 #include "../PlaybackRunner.hpp"
 #include "SharedUiFunctions.hpp"
 #include "Playlist/PlaylistWindow.hpp"
+#include "Settings/SettingsUi.hpp"
 
 MainUi* MainUi::instance = NULL;
 
@@ -31,6 +32,13 @@ static struct GadgetDef playerGadgets[] = {
     { BUTTON_KIND, 170, 160,  50,  20,  "Open",  ID_OPEN,         buttonTags },
     { BUTTON_KIND, 227, 160,  50,  20,  "PList", ID_PLAYLIST,     buttonTags },
     { TEXT_KIND,    20, 125, 260, 14,   "",      ID_TIME_DISPLAY, timeTags }
+};
+
+static struct MenuDef mainMenu[] = {
+    { NM_TITLE, "Project",  NULL,  0,       0 },
+    { NM_ITEM,  "Settings", "S",   MenuID_SETTINGS, 0 },
+    { NM_ITEM,  "Beenden",  "Q",   MenuID_QUIT, 0 },
+    { NM_END,   NULL,       NULL,  0,       0 }
 };
 
 static char timeBuffer[32] = "00:00 / 00:00";
@@ -103,11 +111,16 @@ bool MainUi::SetupGUI()
                          WA_Top, 50,
                          WA_Width, 300,
                          WA_Height, 190,
-                         WA_IDCMP, IDCMP_GADGETUP | IDCMP_GADGETDOWN | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS | IDCMP_CLOSEWINDOW,
+                         WA_IDCMP, IDCMP_GADGETUP | IDCMP_GADGETDOWN | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS | IDCMP_CLOSEWINDOW | IDCMP_MENUPICK,
                          WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
                          WA_PubScreen, (Tag)scr,
                          WA_Gadgets, (Tag)m_gList,
                          TAG_END);
+
+
+    // Menu builder
+    Menu *menu = buildMenus(mainMenu, m_visInfo);
+    SetMenuStrip(m_Window, menu);
 
     UnlockPubScreen(NULL, scr);
 
@@ -130,6 +143,27 @@ bool MainUi::UpdateUi()
 
         if (msg->Class == IDCMP_CLOSEWINDOW)
             return false;
+
+        if (msg->Class == IDCMP_MENUPICK)
+        {
+            UWORD menu_number = msg->Code;
+            while (menu_number != MENUNULL)
+            {
+                struct MenuItem *item = ItemAddress(m_Window->MenuStrip, menu_number);
+                if (item)
+                {
+                    uint16_t id = (uint16_t)(uintptr_t)GTMENUITEM_USERDATA(item);
+                    if (id == MenuID_SETTINGS)
+                    {
+                        sSettingsUi->SetupGUI();
+                        return true;
+                    }
+                    if (id == MenuID_QUIT)
+                        return false;
+                }
+                menu_number = item->NextSelect;
+            }
+        }
         //if (msg->Class == IDCMP_INTUITICKS) Nutze es wenn wir es wieder brauchen
 
         if (msg->Class == IDCMP_GADGETUP)
@@ -261,6 +295,39 @@ void MainUi::UpdateDisplayInformation()
     if (PlaybackRunner::getInstance()->GetStream() != NULL)
         drawVideoPlaceholder(PlaybackRunner::getInstance()->GetStream()->getTitle(), PlaybackRunner::getInstance()->GetStream()->getArtist());
 
+}
+
+Menu *MainUi::buildMenus(const MenuDef *defs, APTR visual_info)
+{
+    int count = 0;
+    while (defs[count].type != NM_END) count++;
+    count++;
+
+    struct NewMenu* nm = (struct NewMenu*)AllocVec(sizeof(struct NewMenu) * count, MEMF_ANY | MEMF_CLEAR);
+    if (!nm) return NULL;
+
+    for (int i = 0; i < count; i++)
+    {
+        nm[i].nm_Type     = defs[i].type;
+        nm[i].nm_Label    = (STRPTR)defs[i].label;
+        nm[i].nm_CommKey  = (STRPTR)defs[i].shortcut;
+        nm[i].nm_Flags    = defs[i].flags;
+        nm[i].nm_MutualExclude = 0; // Wichtig: Initialisieren!
+        nm[i].nm_UserData = (APTR)(uintptr_t)defs[i].id;
+    }
+
+    struct Menu* menu = CreateMenusA(nm, NULL);
+    if (menu)
+    {
+        if (!LayoutMenus(menu, visual_info, GTMN_FullMenu, TRUE, TAG_DONE))
+        {
+            FreeMenus(menu);
+            menu = NULL;
+        }
+    }
+
+    FreeVec(nm); // Das temporäre Array brauchen wir nicht mehr
+    return menu;
 }
 
 void MainUi::drawVideoPlaceholder()

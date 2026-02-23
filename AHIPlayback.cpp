@@ -19,7 +19,7 @@ AHIPlayback::AHIPlayback(AudioStream *s)
     m_volume = 0xFFFF;
     m_softwareVolume = 1.0f;
     m_pause = false;
-    m_useSoftVol = sConfiguration->GetConfigInt("UseSoftVolume", 1);
+    m_useSoftVol = sConfiguration->GetConfigInt(configKeys[CONF_SOFT_VOL], 1);
     //setAmigaFilter(false);
 }
 

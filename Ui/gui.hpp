@@ -15,6 +15,13 @@
 #define ID_TIME_DISPLAY 7
 #define PLAYER_GADS_COUNT 8
 
+enum MainUiMenu
+{
+    MenuID_QUIT = 1,
+    MenuID_SETTINGS,
+    MenuID_MAX
+};
+
 class MainUi
 {
     public:
@@ -79,6 +86,8 @@ class MainUi
         /*********************************************************/
         /***                  Ui related Stuff                 ***/
         /*********************************************************/
+
+        struct Menu* buildMenus(const MenuDef* defs, APTR visual_info);
 
         /// @brief Draw the black frame
         void drawVideoPlaceholder();
