@@ -30,6 +30,8 @@ SettingsUi::~SettingsUi()
 
 bool SettingsUi::SetupGUI()
 {
+    if (m_Window)
+        return true;
     struct Screen *scr = LockPubScreen(NULL);
     if (!scr)
         return false;
