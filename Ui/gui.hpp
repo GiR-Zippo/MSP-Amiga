@@ -87,7 +87,7 @@ class MainUi
         /***                  Ui related Stuff                 ***/
         /*********************************************************/
 
-        struct Menu* buildMenus(const MenuDef* defs, APTR visual_info);
+        struct Menu* buildMenus(Screen *scr, const MenuDef* defs, APTR visual_info);
 
         /// @brief Draw the black frame
         void drawVideoPlaceholder();

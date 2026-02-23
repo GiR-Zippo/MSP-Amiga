@@ -114,12 +114,13 @@ bool MainUi::SetupGUI()
                          WA_IDCMP, IDCMP_GADGETUP | IDCMP_GADGETDOWN | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS | IDCMP_CLOSEWINDOW | IDCMP_MENUPICK,
                          WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
                          WA_PubScreen, (Tag)scr,
+                         WA_NewLookMenus, TRUE,
                          WA_Gadgets, (Tag)m_gList,
                          TAG_END);
 
 
     // Menu builder
-    Menu *menu = buildMenus(mainMenu, m_visInfo);
+    Menu *menu = buildMenus(scr, mainMenu, m_visInfo);
     SetMenuStrip(m_Window, menu);
 
     UnlockPubScreen(NULL, scr);
@@ -297,7 +298,7 @@ void MainUi::UpdateDisplayInformation()
 
 }
 
-Menu *MainUi::buildMenus(const MenuDef *defs, APTR visual_info)
+Menu *MainUi::buildMenus(Screen *scr, const MenuDef *defs, APTR visual_info)
 {
     int count = 0;
     while (defs[count].type != NM_END) count++;
@@ -319,11 +320,16 @@ Menu *MainUi::buildMenus(const MenuDef *defs, APTR visual_info)
     struct Menu* menu = CreateMenusA(nm, NULL);
     if (menu)
     {
-        if (!LayoutMenus(menu, visual_info, GTMN_FullMenu, TRUE, TAG_DONE))
+        struct DrawInfo *drinfo = GetScreenDrawInfo(scr);
+        if (!LayoutMenus(menu, visual_info, 
+                     GTMN_NewLookMenus, TRUE,
+                     GTMN_FullMenu, TRUE,
+                     TAG_DONE))
         {
             FreeMenus(menu);
             menu = NULL;
         }
+        FreeScreenDrawInfo(scr, drinfo);
     }
 
     FreeVec(nm); // Das temporäre Array brauchen wir nicht mehr

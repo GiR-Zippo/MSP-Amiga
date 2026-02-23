@@ -70,6 +70,7 @@ bool SettingsUi::SetupGUI()
                               WA_IDCMP, IDCMP_GADGETUP | IDCMP_CLOSEWINDOW | IDCMP_REFRESHWINDOW,
                               WA_Flags, WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_CLOSEGADGET | WFLG_ACTIVATE | WFLG_SMART_REFRESH,
                               WA_PubScreen, (Tag)scr,
+                              WA_NewLookMenus, TRUE,
                               TAG_DONE);
 
     UnlockPubScreen(NULL, scr);

@@ -146,6 +146,7 @@ bool PlaylistWindow::SetupGUI()
                               WA_IDCMP, IDCMP_CLOSEWINDOW | IDCMP_GADGETUP | IDCMP_MOUSEBUTTONS | IDCMP_INTUITICKS,
                               WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
                               WA_PubScreen, (Tag)scr,
+                              WA_NewLookMenus, TRUE,
                               TAG_DONE);
 
     UnlockPubScreen(NULL, scr);
