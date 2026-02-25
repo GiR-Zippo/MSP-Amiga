@@ -49,6 +49,9 @@ class PlaylistWindow
         /// @brief Updates the Ui
         int16_t UpdateUi();
 
+        /// @brief Called when a drag&drop even occures
+        void UpdateDragNDrop();
+
         /// @brief Shutsdown the Ui
         void CleanupGUI();
 
@@ -64,6 +67,9 @@ class PlaylistWindow
 
         /// @brief Get the window signal
         ULONG GetWinSignal() { return 1L << m_Window->UserPort->mp_SigBit; }
+        
+        /// @brief Gets the signal for Drag&Drop
+        ULONG GetDnDSignal() { return 1L << m_PlaylistPort->mp_SigBit; }
 
         /*********************************************************/
         /***               Playlist related Stuff              ***/
@@ -150,6 +156,8 @@ class PlaylistWindow
         void*           m_VisInfo;      // The VisualInfo
         struct Gadget*  m_GadgetList;   // The GadgetList
         struct Gadget*  m_Gads[PLAYLIST_MAX];
+        struct AppWindow *m_PlaylistWin;
+        struct MsgPort *m_PlaylistPort;
         int             m_topOffset;
 
         struct List     m_SongList;     // Die sichtbare SongListe

@@ -69,9 +69,8 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
         // remove stream only, task removed the audio
         if (m_stream)
             delete m_stream;
-        m_stream = NULL;
     }
-
+    m_stream = NULL;
     if (!file.empty())
     {
         if (strstr(file.c_str(), "http://"))

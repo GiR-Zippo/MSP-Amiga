@@ -41,6 +41,11 @@
 
 #include <proto/exec.h>
 #include <proto/dos.h>
+#include <proto/wb.h>
+
+#include <workbench/icon.h>
+#include <workbench/workbench.h>
+
 
 #define M_PI 3.14159265358979323846
 //set OLD_GCC as -DOLD_GCC flag, when using ADE
@@ -108,14 +113,7 @@ void dump_packet(const uint8_t *buffer, int len);
 void itoa(uint32_t n, char* s);
 
 #ifdef DEBUG
-    inline void DLog(const char* fmt, ...) {
-        char buffer[256];
-        va_list args;
-        va_start(args, fmt);
-        vsprintf(buffer, fmt, args);
-        va_end(args);
-        printf((STRPTR)"%s", (STRPTR)buffer);
-    }
+    inline void DLog(const char* fmt, ...);
 #else
     inline void DLog(const char* fmt, ...) {}
 #endif

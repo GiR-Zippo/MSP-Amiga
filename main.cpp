@@ -55,8 +55,16 @@ int main()
         ULONG pSettings = sSettingsUi->GetWinSignal();
         ULONG pArexxSig = sArexx->GetSignal();
         ULONG timerSig = timerPort ? (1L << timerPort->mp_SigBit) : 0;
+        ULONG mainDnDSig = MainUi::getInstance()->GetDnDSignal();
+        ULONG playlistDnDSig = PlaylistWindow::getInstance()->GetDnDSignal();
 
-        ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig | timerSig | pArexxSig | pSettings);
+        ULONG signals = Wait(windowSig | pWindowSig | SIGBREAKF_CTRL_C | pPlaybackSig | timerSig | pArexxSig | pSettings | mainDnDSig | playlistDnDSig);
+
+        if (signals & mainDnDSig)
+            MainUi::getInstance()->UpdateDragNDrop();
+
+        if (signals & playlistDnDSig)
+            PlaylistWindow::getInstance()->UpdateDragNDrop();
 
         if (signals & timerSig)
         {
@@ -91,7 +99,6 @@ int main()
         }
     }
 
-    // --- Cleanup Timer ---
     if (timerOpen)
     {
         if (!CheckIO((struct IORequest *)timerIO)) AbortIO((struct IORequest *)timerIO);

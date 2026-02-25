@@ -48,6 +48,8 @@ MainUi::MainUi()
     m_Window = NULL;
     m_gList = NULL;
     m_visInfo = NULL;
+    m_MainAppWin = NULL;
+    m_MainAppPort = NULL;
     m_AslBase = NULL;
     m_VolumeLevel = 70;
     m_scrollOffset = 0;
@@ -92,6 +94,10 @@ bool MainUi::SetupGUI()
     UnlockPubScreen(NULL, scr);
     if (!m_Window)
         return false;
+
+    //Drag&Drop support
+    m_MainAppPort = CreateMsgPort();
+    m_MainAppWin = AddAppWindowA(0, 0, m_Window, m_MainAppPort, nullptr);
 
     struct NewGadget ng;
     struct Gadget *context;
@@ -244,8 +250,37 @@ bool MainUi::UpdateUi()
     return true;
 }
 
+void MainUi::UpdateDragNDrop()
+{
+    struct AppMessage *amsg;
+    while ((amsg = (struct AppMessage *)GetMsg(m_MainAppPort)) != nullptr)
+    {
+        if (amsg->am_Type == AMTYPE_APPWINDOW && amsg->am_NumArgs > 0)
+        {
+            char fullpath[512];
+            for (int i = 0; i < amsg->am_NumArgs; i++)
+            {
+                BPTR lock = amsg->am_ArgList[i].wa_Lock;
+                const char *name = amsg->am_ArgList[i].wa_Name;
+                if (NameFromLock(lock, fullpath, sizeof(fullpath)))
+                {
+                    AddPart(fullpath, name, sizeof(fullpath));
+                    DLog("Dropped file: %s\n", fullpath);
+                    PlaylistWindow::getInstance()->SetUsePlaylist(false);
+                    PlaybackRunner::getInstance()->StartPlaybackTask(fullpath);
+                }
+            }
+        }
+        ReplyMsg((struct Message *)amsg);
+    }
+}
+
 void MainUi::CleanupGUI()
 {
+    if (m_MainAppWin)
+        RemoveAppWindow(m_MainAppWin);
+    if (m_MainAppPort)
+        DeleteMsgPort(m_MainAppPort);
     if (m_Window)
         CloseWindow(m_Window);
     if (m_gList)

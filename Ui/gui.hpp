@@ -44,12 +44,18 @@ class MainUi
         /// @brief Updates the Ui
         bool UpdateUi();
 
+        /// @brief Called when a drag&drop even occures
+        void UpdateDragNDrop();
+
         /// @brief Shutsdown the Ui
         void CleanupGUI();
 
         /// @brief Get the window signal
         ULONG GetWinSignal() { return 1L << m_Window->UserPort->mp_SigBit; }
-    
+        
+        /// @brief Gets the signal for Drag&Drop
+        ULONG GetDnDSignal() { return 1L << m_MainAppPort->mp_SigBit; }
+        
         /// @brief Update the seeker
         /// @param percent 
         void UpdateSeeker(long percent);
@@ -108,6 +114,8 @@ class MainUi
         struct Gadget*  m_gList;
         struct Gadget*  m_gads[PLAYER_GADS_COUNT];
         void *          m_visInfo;
+        struct AppWindow *m_MainAppWin;
+        struct MsgPort *m_MainAppPort;
         int             m_topOffset;
         uint16_t        m_VolumeLevel;
 

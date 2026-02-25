@@ -40,6 +40,8 @@ static struct GadgetDef playlistGadgets[] = {
 
 PlaylistWindow::PlaylistWindow() : m_Window(NULL), m_GadgetList(NULL)
 {
+    m_PlaylistWin = NULL;
+    m_PlaylistPort = NULL;
     NewList(&m_SongList); // Exec-Liste initialisieren
     NewList(&m_HiddenList);
     m_firstTime = true;
@@ -88,6 +90,10 @@ bool PlaylistWindow::SetupGUI()
         m_GadgetList = NULL;
         return false;
     }
+
+    //Drag&Drop support
+    m_PlaylistPort = CreateMsgPort();
+    m_PlaylistWin = AddAppWindowA(0, 0, m_Window, m_PlaylistPort, nullptr);
 
     m_GadgetList = NULL;
     struct Gadget *context = CreateContext(&m_GadgetList);
@@ -236,7 +242,7 @@ int16_t PlaylistWindow::UpdateUi()
         }
         if (msg->Class == IDCMP_GADGETUP && gad->GadgetID == PLAYLIST_ADD*1000) // Add
         {
-            std::string filename = SharedUiFunctions::OpenFileRequest("#?.(aac|m4a|flac|mp3|ogg|m3u)");
+            std::string filename = SharedUiFunctions::OpenFileRequest("#?.(aac|m4a|flac|mp3|ogg|mid|m3u)");
             if (!filename.empty())
             {
                 if (strstr(filename.c_str(), ".m3u"))
@@ -270,6 +276,40 @@ int16_t PlaylistWindow::UpdateUi()
     return -1;
 }
 
+void PlaylistWindow::UpdateDragNDrop()
+{
+    if (!m_opened || !m_Window)
+        return;
+
+    struct AppMessage *amsg;
+    while ((amsg = (struct AppMessage *)GetMsg(m_PlaylistPort)) != nullptr)
+    {
+        if (amsg->am_Type == AMTYPE_APPWINDOW && amsg->am_NumArgs > 0)
+        {
+            char fullpath[512];
+            for (int i = 0; i < amsg->am_NumArgs; i++)
+            {
+                BPTR lock = amsg->am_ArgList[i].wa_Lock;
+                const char *name = amsg->am_ArgList[i].wa_Name;
+                if (NameFromLock(lock, fullpath, sizeof(fullpath)))
+                {
+                    AddPart(fullpath, name, sizeof(fullpath));
+                    DLog("Dropped file: %s\n", fullpath);
+                    if (strstr(fullpath, ".m3u") ||
+                        strstr(fullpath, ".aac") ||
+                        strstr(fullpath, ".m4a") ||
+                        strstr(fullpath, ".flac") ||
+                        strstr(fullpath, ".mp3") ||
+                        strstr(fullpath, ".ogg") ||
+                        strstr(fullpath, ".mid"))
+                    AddEntry(FilePart((STRPTR)fullpath), fullpath);
+                }
+            }
+        }
+        ReplyMsg((struct Message *)amsg);
+    }
+}
+
 void PlaylistWindow::CleanupGUI()
 {
     clearList();
@@ -294,6 +334,11 @@ void PlaylistWindow::close()
         return;
 
     m_opened = false;
+
+    if (m_PlaylistWin)
+        RemoveAppWindow(m_PlaylistWin);
+    if (m_PlaylistPort)
+        DeleteMsgPort(m_PlaylistPort);
 
     if (m_Window && m_Window->UserPort)
     {
