@@ -359,7 +359,7 @@ bool StreamRunner::readHeader()
                 m_icyInterval = (int)metaInt;
                 m_parent->m_icyInterval = m_icyInterval;
             }
-            printf("ICY Metaint: %d\n", m_icyInterval);
+            DLog("ICY Metaint: %d\n", m_icyInterval);
         }
         if (strstr((const char *)m_ringBuffer, "\r\n\r\n"))
         {
@@ -390,10 +390,10 @@ bool StreamRunner::readStream(int RING_SIZE, int RING_MASK)
                 unsigned long err = ERR_get_error();
                 char err_buf[256];
                 ERR_error_string_n(err, err_buf, sizeof(err_buf));
-                printf("AmiSSL Error: %s\n", err_buf);
+                DLog("AmiSSL Error: %s\n", err_buf);
 
                 int ssl_err = SSL_get_error(m_amiSSL->GetSSL(), res);
-                printf("SSL_get_error: %d\n", ssl_err);
+                DLog("SSL_get_error: %d\n", ssl_err);
                 FreeVec(m_ringBuffer);
                 writeToBuffer(m_parent->m_artist, "Err: AmiSSL read data...");
                 return false;

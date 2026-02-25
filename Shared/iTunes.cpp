@@ -90,11 +90,11 @@ void iTunes::FetchList(List &songList, const char *filter)
         strncpy(path, fName.substr(slashPos).c_str(), 255);
     }
 
-    printf("Connecting to: %s:%d%s\n", host, port, path);
+    DLog("Connecting to: %s:%d%s\n", host, port, path);
 
     if (!m_amiSSL->OpenConnection(host, port))
     {
-        printf("Con ERR\n");
+        DLog("Con ERR\n");
         return;
     }
 
@@ -105,10 +105,10 @@ void iTunes::FetchList(List &songList, const char *filter)
         unsigned long err = ERR_get_error();
         char err_buf[256];
         ERR_error_string_n(err, err_buf, sizeof(err_buf));
-        printf("AmiSSL Error: %s\n", err_buf);
+        DLog("AmiSSL Error: %s\n", err_buf);
 
         int ssl_err = SSL_get_error(m_amiSSL->GetSSL(), ret);
-        printf("SSL_get_error: %d\n", ssl_err);
+        DLog("SSL_get_error: %d\n", ssl_err);
         return;
     }
 
@@ -192,7 +192,7 @@ void iTunes::FetchList(List &songList, const char *filter)
 
 void iTunes::FetchRSS(List &songList, const char *url)
 {
-    printf("%s\n", url);
+    DLog("%s\n", url);
     m_amiSSL = new AmiSSL();
 
     if (!m_amiSSL->Init())
@@ -221,11 +221,11 @@ void iTunes::FetchRSS(List &songList, const char *url)
         strncpy(path, fName.substr(slashPos).c_str(), 255);
     }
 
-    printf("Connecting to: %s:%d%s\n", host, port, path);
+    DLog("Connecting to: %s:%d%s\n", host, port, path);
 
     if (!m_amiSSL->OpenConnection(host, port))
     {
-        printf("Con ERR\n");
+        DLog("Con ERR\n");
         return;
     }
 
@@ -236,10 +236,10 @@ void iTunes::FetchRSS(List &songList, const char *url)
         unsigned long err = ERR_get_error();
         char err_buf[256];
         ERR_error_string_n(err, err_buf, sizeof(err_buf));
-        printf("AmiSSL Error: %s\n", err_buf);
+        DLog("AmiSSL Error: %s\n", err_buf);
 
         int ssl_err = SSL_get_error(m_amiSSL->GetSSL(), ret);
-        printf("SSL_get_error: %d\n", ssl_err);
+        DLog("SSL_get_error: %d\n", ssl_err);
         return;
     }
 

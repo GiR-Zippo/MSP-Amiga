@@ -34,7 +34,7 @@ int main()
         return -1;
 
     if (!sArexx->Init())
-        printf("Error init Arexx\n");
+        DLog("Error init Arexx\n");
 
     // --- Timer Setup Start ---
     struct MsgPort *timerPort = CreateMsgPort();
@@ -101,20 +101,20 @@ int main()
     if (timerIO) DeleteIORequest((struct IORequest *)timerIO);
     if (timerPort) DeleteMsgPort(timerPort);
 
-    printf("Cleanup: Arexx\n");
+    DLog("Cleanup: Arexx\n");
     sArexx->Cleanup();
 
-    printf("Cleanup: Settings\n");
+    DLog("Cleanup: Settings\n");
     sSettingsUi->CloseGUI();
 
-    printf("Cleanup: PlaybackRunner\n");
+    DLog("Cleanup: PlaybackRunner\n");
     PlaybackRunner::getInstance()->Cleanup();
 
-    printf("Cleanup: Playlist\n");
+    DLog("Cleanup: Playlist\n");
     PlaylistWindow::getInstance()->CleanupGUI();
 
-    printf("Cleanup: MainUi\n");
+    DLog("Cleanup: MainUi\n");
     MainUi::getInstance()->CleanupGUI();
-    printf("Cleabup done\n");
+    DLog("Cleabup done\n");
     return 0;
 }

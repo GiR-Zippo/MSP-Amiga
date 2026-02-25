@@ -16,7 +16,7 @@ PlaybackRunner::PlaybackRunner()
     m_PlayerState = PFLAG_NON_INIT;
     m_songEndSignal = AllocSignal(-1); // -1 sucht das nächste freie Bit
     if (m_songEndSignal == -1)
-        printf("Sig Err\n");
+        DLog("Sig Err\n");
     m_songEndMask = (1L << m_songEndSignal);
     m_stream = NULL;
 }
@@ -150,7 +150,7 @@ void PlaybackRunner::PlayerTaskFunc()
     // no data
     if (!pb)
     {
-        printf("PlayerTask: TIMEOUT - no UserData!\n");
+        DLog("PlayerTask: TIMEOUT - no UserData!\n");
         return;
     }
 
@@ -198,7 +198,7 @@ void PlaybackRunner::PlayerTaskFunc()
                 PlaybackRunner::getInstance()->setFlag(PFLAG_STOP);
                 playback->Stop();
                 pb->stream->seek(0);
-                printf("Task: Song beendet.\n");
+                DLog("Task: Song beendet.\n");
                 //raus hier
                 break;
             }
@@ -215,5 +215,5 @@ void PlaybackRunner::PlayerTaskFunc()
     // gib mal der Playlist bescheid
     Signal(pb->mainTask, pb->songEndMask);
     delete pb;
-    printf("Task: Beendet.\n");
+    DLog("Task: Beendet.\n");
 }

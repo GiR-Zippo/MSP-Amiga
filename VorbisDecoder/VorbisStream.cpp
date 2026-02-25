@@ -23,7 +23,7 @@ bool VorbisStream::open(const char* filename)
     m_v = stb_vorbis_open_filename((char*)filename, &error, NULL);
     
     if (!m_v) {
-        printf("stb_vorbis: Fehler beim Öffnen von '%s'. Code: %d\n", filename, error);
+        DLog("stb_vorbis: Fehler beim Öffnen von '%s'. Code: %d\n", filename, error);
         return false;
     }
     
@@ -84,7 +84,7 @@ bool VorbisStream::readDuration(const char *filename)
 {
     FILE* f = fopen(filename, "rb");
     if (!f) {
-        printf("Datei konnte nicht geöffnet werden\n");
+        DLog("Datei konnte nicht geöffnet werden\n");
         return false;
     }
 

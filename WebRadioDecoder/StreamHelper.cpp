@@ -44,7 +44,7 @@ void NetworkStream::decodeUrlData(std::string url)
         if (strstr(url.c_str(), ".mp3"))
             m_codec = 0;*/
 
-    printf("Decoded to: %s %u %s\n", m_host, m_port, m_path);
+    DLog("Decoded to: %s %u %s\n", m_host, m_port, m_path);
 }
 
 /// @brief hendles the server response
@@ -102,7 +102,7 @@ bool NetworkStream::handleServerResponse(std::string response)
     }
     else if (strstr(response.c_str(), "400 Bad Request"))
     {
-        printf("400 Bad Request\n");
+        DLog("400 Bad Request\n");
         return false;
     }
     return true;

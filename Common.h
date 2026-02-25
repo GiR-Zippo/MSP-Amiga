@@ -106,4 +106,17 @@ void dump_packet(const uint8_t *buffer, int len);
 
 /// @brief integer to ascii
 void itoa(uint32_t n, char* s);
+
+#ifdef DEBUG
+    inline void DLog(const char* fmt, ...) {
+        char buffer[256];
+        va_list args;
+        va_start(args, fmt);
+        vsprintf(buffer, fmt, args);
+        va_end(args);
+        printf((STRPTR)"%s", (STRPTR)buffer);
+    }
+#else
+    inline void DLog(const char* fmt, ...) {}
+#endif
 #endif

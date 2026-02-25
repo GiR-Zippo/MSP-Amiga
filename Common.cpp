@@ -212,23 +212,23 @@ size_t wcslen(const wchar_t *s)
 
 void dump_packet(const uint8_t *buffer, int len)
 {
-    printf("\n--- Packet Dump (%d bytes) ---\n", len);
+    DLog("\n--- Packet Dump (%d bytes) ---\n", len);
 
     for (int i = 0; i < len; i += 16)
     {
         // 1. Offset anzeigen (Hex)
-        printf("%04x: ", i);
+        DLog("%04x: ", i);
 
         // 2. Hex-Teil (16 Bytes pro Zeile)
         for (int j = 0; j < 16; j++)
         {
             if (i + j < len)
-                printf("%02x ", buffer[i + j]);
+                DLog("%02x ", buffer[i + j]);
             else
-                printf("   "); // Auffüllen bei kürzeren Zeilen
+                DLog("   "); // Auffüllen bei kürzeren Zeilen
         }
 
-        printf(" | ");
+        DLog(" | ");
 
         // 3. String-Teil (ASCII)
         for (int j = 0; j < 16; j++)
@@ -237,12 +237,12 @@ void dump_packet(const uint8_t *buffer, int len)
             {
                 uint8_t c = buffer[i + j];
                 // Nur druckbare Zeichen anzeigen, sonst einen Punkt
-                printf("%c", isprint(c) ? c : '.');
+                DLog("%c", isprint(c) ? c : '.');
             }
         }
-        printf("\n");
+        DLog("\n");
     }
-    printf("------------------------------\n");
+    DLog("------------------------------\n");
 }
 
 void itoa(uint32_t n, char* s)

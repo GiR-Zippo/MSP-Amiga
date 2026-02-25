@@ -105,8 +105,8 @@ bool MidiParser::Load(const char *path)
                         }
                         buffer[i > 127 ? 127 : i] = '\0'; // Null-Terminator setzen
                         
-                        if (metaType == 0x03) printf("Titel: %s\n", buffer);
-                        if (metaType == 0x02) printf("Copyright: %s\n", buffer);
+                        if (metaType == 0x03) DLog("Titel: %s\n", buffer);
+                        if (metaType == 0x02) DLog("Copyright: %s\n", buffer);
                         break;
                     }
                     //MIDI Set Tempo meta message

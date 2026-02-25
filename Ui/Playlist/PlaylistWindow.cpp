@@ -150,7 +150,7 @@ bool PlaylistWindow::SetupGUI()
 
     if (!m_Gads[PLAYLIST_LIST])
     {
-        printf("Fehler: CreateGadget(LISTVIEW_KIND) liefert NULL!\n");
+        DLog("Fehler: CreateGadget(LISTVIEW_KIND) liefert NULL!\n");
         FreeGadgets(m_GadgetList);
         FreeVisualInfo(m_VisInfo);
         return false;

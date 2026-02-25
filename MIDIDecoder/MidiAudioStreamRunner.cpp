@@ -8,7 +8,7 @@ void MidiAudioStreamRunner::Run(MidiAudioStream *parent)
     writeToBuffer(parent->m_title, "...");
     if (worker.open(parent->m_file.c_str()))
     {
-        printf("File open %s\n", parent->m_file.c_str());
+        DLog("File open %s\n", parent->m_file.c_str());
         std::vector<std::string> strings = Split(parent->m_file, ":");
         strings = Split(strings.back(), "/");
         writeToBuffer(parent->m_title, strings.back().c_str());
@@ -288,7 +288,7 @@ void MidiAudioStreamRunner::ExecuteMidiEvent(const MidiEvent &ev)
             double den = 1000000.0 * (double)m_ppq;
 
             m_spt = num / den;
-            printf("MPQN: %u, PPQ: %f -> SPT: %f BPM: %f \n", mpqn, m_ppq, m_spt, bpm);
+            DLog("MPQN: %u, PPQ: %f -> SPT: %f BPM: %f \n", mpqn, m_ppq, m_spt, bpm);
         }
     }
 
