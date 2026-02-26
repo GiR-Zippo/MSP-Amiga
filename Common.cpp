@@ -142,17 +142,6 @@ std::string SimpleEncode(const char *src)
     return out;
 }
 
-void writeToBuffer(char *outbuf, const char *input, int outbufSize)
-{
-    if (outbuf == NULL || input == NULL || outbufSize == 0)
-        return;
-            
-    if (input[0] == '\0')
-        return;
-    strncpy(outbuf, input, outbufSize);
-    outbuf[outbufSize] = '\0';
-}
-
 // Bleibt so, dann compiled es
 size_t wcsrtombs(char *dest, const wchar_t **src, size_t len, mbstate_t *ps)
 {

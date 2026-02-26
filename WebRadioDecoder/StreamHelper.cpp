@@ -65,7 +65,7 @@ bool NetworkStream::handleServerResponse(std::string response)
             {
                 size_t start = locPos + 10;
                 size_t end = response.find("\r\n", start);
-                writeToBuffer(m_station, response.substr(start, end - start).c_str());
+                setStation(response.substr(start, end - start).c_str());
             }
         }
         if (strstr(response.c_str(), "icy-metaint:"))

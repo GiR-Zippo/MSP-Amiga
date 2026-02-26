@@ -8,8 +8,8 @@ M4AStream::M4AStream()
       m_initialized(false),
       m_duration(0)
 {
-    writeToBuffer(m_title, "Unknown Title");
-    writeToBuffer(m_artist, "Unknown Artist");
+    setTitle("Unknown Title");
+    setArtist("Unknown Artist");
 }
 
 M4AStream::~M4AStream()
@@ -25,10 +25,10 @@ bool M4AStream::open(const char *filename)
         return false;
     
     if (!meta.title.empty())
-        writeToBuffer(m_title, meta.title.c_str());
+        setTitle(meta.title.c_str());
 
     if (!meta.artist.empty())
-        writeToBuffer(m_artist, meta.artist.c_str());
+        setArtist(meta.artist.c_str());
         
     if (meta.audioTracks.size() > 0)
         m_duration = meta.audioTracks[0].duration;

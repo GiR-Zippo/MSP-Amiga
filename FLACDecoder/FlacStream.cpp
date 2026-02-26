@@ -9,8 +9,8 @@ extern "C"
 
 FlacStream::FlacStream() : m_flac(NULL), m_initialized(false), m_duration(0)
 {
-    writeToBuffer(m_title, "Unknown Title");
-    writeToBuffer(m_artist, "Unknown Artist");
+    setTitle("Unknown Title");
+    setArtist("Unknown Artist");
 }
 
 FlacStream::~FlacStream()

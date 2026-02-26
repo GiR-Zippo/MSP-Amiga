@@ -44,9 +44,6 @@ class NetworkStream : public AudioStream
         bool IsConnected() const { return m_connected; }
 
         int readSamples(short *buffer, int samplesToRead);
-        const char* getStation() const { return m_station; }
-        const char* getTitle() const { return m_title; }
-        const char* getArtist() const { return m_artist; }
     private:
         static void taskEntry(); // Der Amiga-Prozess-Einstieg
         void closeStream();
@@ -71,10 +68,6 @@ class NetworkStream : public AudioStream
         AudioQueue*     m_q;
         //Für metainfos
         int             m_icyInterval;
-
-        char     m_station[128];
-        char     m_title[128];
-        char     m_artist[128];
 };
 
 #endif

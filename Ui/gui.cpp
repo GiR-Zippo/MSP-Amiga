@@ -206,6 +206,7 @@ bool MainUi::UpdateUi()
                     uint32_t duration = PlaybackRunner::getInstance()->GetStream()->getDuration();
                     uint32_t seekTime = (msgCode * duration) / 100;
                     UpdateTimeDisplay(seekTime, duration);
+                    ResetScroller();
                 }
             }
         }
@@ -332,9 +333,14 @@ void MainUi::UpdateDisplayInformation()
     }
 
     if (PlaybackRunner::getInstance()->GetStream() != NULL)
-        drawVideoPlaceholder(PlaybackRunner::getInstance()->GetStream()->getStation(),
-                             PlaybackRunner::getInstance()->GetStream()->getTitle(), 
-                             PlaybackRunner::getInstance()->GetStream()->getArtist());
+    {
+        char Stationbuf[128];
+        char Titlebuf[128];
+        char Artistbuf[128];
+        drawVideoPlaceholder(PlaybackRunner::getInstance()->GetStream()->getStation(Stationbuf, 128),
+                             PlaybackRunner::getInstance()->GetStream()->getTitle(Titlebuf, 128), 
+                             PlaybackRunner::getInstance()->GetStream()->getArtist(Artistbuf, 128));
+    }
 
 }
 

@@ -19,8 +19,6 @@ class VorbisStream : public AudioStream
         uint32_t getSampleRate() const { return m_sampleRate; }
         int      getChannels()   const { return m_channels; }
         bool     isValid()       const { return m_v != NULL; }
-        const char* getTitle() const { return m_title; }
-        const char* getArtist() const { return m_artist; }
 
     private:
         bool readDuration(const char *filename);
@@ -28,8 +26,6 @@ class VorbisStream : public AudioStream
         int      m_sampleRate;
         int      m_channels;
         uint32_t m_duration;
-        char     m_title[128];
-        char     m_artist[128];
 };
 
 #endif

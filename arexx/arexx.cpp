@@ -40,16 +40,22 @@ void ARexx::Update()
                 if (PlaybackRunner::getInstance()->GetStream() == NULL)
                     rmsg->rm_Result1 = 10;
                 else
-                    rmsg->rm_Result2 = (LONG)CreateArgstring((STRPTR)PlaybackRunner::getInstance()->GetStream()->getTitle(), 
-                                                            strlen(PlaybackRunner::getInstance()->GetStream()->getTitle()));
+                {
+                    char Titlebuf[128];
+                    rmsg->rm_Result2 = (LONG)CreateArgstring((STRPTR)PlaybackRunner::getInstance()->GetStream()->getTitle(Titlebuf, 128), 
+                                                            strlen(Titlebuf));
+                }
             }
             else if (strcasestr(command, "getartist") != NULL)
             {
                 if (PlaybackRunner::getInstance()->GetStream() == NULL)
                     rmsg->rm_Result1 = 10;
                 else
-                    rmsg->rm_Result2 = (LONG)CreateArgstring((STRPTR)PlaybackRunner::getInstance()->GetStream()->getArtist(), 
-                                                            strlen(PlaybackRunner::getInstance()->GetStream()->getArtist()));
+                {
+                    char Artistbuf[128];
+                    rmsg->rm_Result2 = (LONG)CreateArgstring((STRPTR)PlaybackRunner::getInstance()->GetStream()->getArtist(Artistbuf, 128), 
+                                                            strlen(Artistbuf));
+                }
             }
             else if (strcasestr(command, "getlaptime") != NULL)
             {

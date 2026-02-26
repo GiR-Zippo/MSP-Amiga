@@ -13,10 +13,10 @@
 void StreamRunner::Run(NetworkStream *parent)
 {
     StreamRunner worker(parent);
-    writeToBuffer(parent->m_artist, "Connecting...");
+    parent->setArtist("Connecting...");
     if (worker.openSocket())
     {
-        writeToBuffer(parent->m_artist, "Connected...");
+        parent->setArtist("Connected...");
         parent->m_connected = true;
         if (parent->m_codec == 0)
             worker.processMP3Stream();
@@ -132,7 +132,7 @@ void StreamRunner::processMP3Stream()
 
     if (!readHeader())
     {
-        writeToBuffer(m_parent->m_artist, "Err: No HTTP header...");
+        m_parent->setArtist("Err: No HTTP header...");
         FreeVec(m_ringBuffer);
         return;
     }
@@ -243,7 +243,7 @@ void StreamRunner::processAACStream()
 
     if (!readHeader())
     {
-        writeToBuffer(m_parent->m_artist, "Err: No HTTP header...");
+        m_parent->setArtist("Err: No HTTP header...");
         FreeVec(m_ringBuffer);
         return;
     }
@@ -395,7 +395,7 @@ bool StreamRunner::readStream(int RING_SIZE, int RING_MASK)
                 int ssl_err = SSL_get_error(m_amiSSL->GetSSL(), res);
                 DLog("SSL_get_error: %d\n", ssl_err);
                 FreeVec(m_ringBuffer);
-                writeToBuffer(m_parent->m_artist, "Err: AmiSSL read data...");
+                m_parent->setArtist("Err: AmiSSL read data...");
                 return false;
             }
         }
@@ -409,7 +409,7 @@ bool StreamRunner::readStream(int RING_SIZE, int RING_MASK)
         }
         else if (res == 0 && !m_amiSSL) // Bei SSL bedeutet res=0 nicht immer Ende
         {
-            writeToBuffer(m_parent->m_artist, "Err: Socket read data...");
+            m_parent->setArtist("Err: Socket read data...");
             FreeVec(m_ringBuffer);
             return false;
         }
@@ -451,8 +451,8 @@ unsigned char *StreamRunner::readIcyMeta(int RING_SIZE, int RING_MASK, unsigned 
                 if (titleStart[0] != 00)
                 {
                     std::vector<std::string> parts = Split(std::string(titleStart), " - ");
-                    writeToBuffer(m_parent->m_title, parts[1].c_str());
-                    writeToBuffer(m_parent->m_artist, parts[0].c_str());
+                    m_parent->setTitle(parts[1].c_str());
+                    m_parent->setArtist(parts[0].c_str());
                 }
             }
         }

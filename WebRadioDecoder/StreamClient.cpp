@@ -37,7 +37,7 @@ bool NetworkStream::open(const char *filename)
 
     if (oldTask)
     {
-        writeToBuffer(m_artist, "Old Task still running! Killing...");
+        setArtist("Old Task still running! Killing...");
         m_terminate = true; // Signal zum Abbruch senden
 
         // Kurz warten, bis er weg ist (Active Waiting)
@@ -45,7 +45,7 @@ bool NetworkStream::open(const char *filename)
         while (FindTask((CONST_STRPTR) "StreamWorker") && timeout-- > 0)
             Delay(2);
 
-        writeToBuffer(m_artist, "Old Task exited...");
+        setArtist("Old Task exited...");
     }
 
     std::string fName = filename;

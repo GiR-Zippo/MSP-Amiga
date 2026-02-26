@@ -13,8 +13,8 @@ AACStream::AACStream()
       m_initialized(false),
       m_duration(0)
 {
-    writeToBuffer(m_title, "Unknown Title");
-    writeToBuffer(m_artist, "Unknown Artist");
+    setTitle("Unknown Title");
+    setArtist("Unknown Artist");
 }
 
 AACStream::~AACStream()
@@ -25,9 +25,9 @@ AACStream::~AACStream()
 
 bool AACStream::open(const char *filename)
 {
-    writeToBuffer(m_artist, "Building seektable please wait ...");
+    setArtist("Building seektable please wait ...");
     m_aac = dr_aac_open_file(filename);
-    writeToBuffer(m_artist, "Building seektable done");
+    setArtist("Building seektable done");
     if (!m_aac)
         return false;
     m_sampleRate = m_aac->samplerate;

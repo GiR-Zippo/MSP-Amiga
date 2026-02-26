@@ -17,8 +17,6 @@ class MidiAudioStream : public AudioStream
         uint32_t getDuration() const { return m_duration; }
         uint32_t getSampleRate() const { return 44100; }
         int getChannels() const { return 2; }
-        const char* getTitle() const { return m_title; }
-        const char* getArtist() const { return m_artist; }
 
     private:
         static void taskEntry();
@@ -30,7 +28,5 @@ class MidiAudioStream : public AudioStream
         int32_t         m_seekSeconds;
         uint32_t        m_currentTime;
         uint32_t        m_duration;
-        char            m_title[128];
-        char            m_artist[128];
 };
 #endif

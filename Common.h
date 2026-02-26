@@ -103,9 +103,6 @@ void RemoveFromString(std::string &src, std::string arg);
 /// @brief just a helper for space to %20 conversion for urls
 std::string SimpleEncode(const char* src);
 
-/// @brief writes input to output, outbufSize defaults to 127 (array[128])
-void writeToBuffer(char* outbuf, const char* input, int outbufSize = 127);
-
 /// @brief show buffer content
 void dump_packet(const uint8_t *buffer, int len);
 

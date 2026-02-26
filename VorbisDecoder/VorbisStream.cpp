@@ -7,8 +7,8 @@
 VorbisStream::VorbisStream() 
     : m_v(NULL), m_sampleRate(0), m_channels(0), m_duration(0)
 {
-    writeToBuffer(m_title, "Unknown Title");
-    writeToBuffer(m_artist, "Unknown Artist");
+    setTitle("Unknown Title");
+    setArtist("Unknown Artist");
 }
 
 VorbisStream::~VorbisStream()
