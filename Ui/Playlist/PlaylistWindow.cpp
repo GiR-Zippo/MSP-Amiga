@@ -284,7 +284,7 @@ void PlaylistWindow::UpdateDragNDrop()
     struct AppMessage *amsg;
     while ((amsg = (struct AppMessage *)GetMsg(m_PlaylistPort)) != nullptr)
     {
-        if (amsg->am_Type == AMTYPE_APPWINDOW && amsg->am_NumArgs > 0)
+        if (m_playlistMode == 0 && amsg->am_Type == AMTYPE_APPWINDOW && amsg->am_NumArgs > 0)
         {
             char fullpath[512];
             for (int i = 0; i < amsg->am_NumArgs; i++)

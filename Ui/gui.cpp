@@ -25,7 +25,7 @@ static struct TagItem buttonTags[] = {
 static struct GadgetDef playerGadgets[] = {
     // Kind         X    Y    W    H    Label    ID               Tags
     { SLIDER_KIND,  20, 122, 260, 12,   "",      ID_SEEKER,       seekerTags },
-    { SLIDER_KIND, 285,  10,  10, 124,  "",      ID_VOLUME,       volTags },
+    { SLIDER_KIND, 285,  10,  15, 124,  "",      ID_VOLUME,       volTags },
     { BUTTON_KIND,  20, 140,  50,  20,  "Play",  ID_PLAY,         buttonTags },
     { BUTTON_KIND,  70, 140,  50,  20,  "Pause", ID_PAUSE,        buttonTags },
     { BUTTON_KIND, 120, 140,  50,  20,  "Stop",  ID_STOP,         buttonTags },
@@ -84,7 +84,7 @@ bool MainUi::SetupGUI()
                          WA_Title, (Tag) "My Shitty Player",
                          WA_Left, 50,
                          WA_Top, 50,
-                         WA_Width, 300,
+                         WA_Width, 305,
                          WA_Height, (Tag)(170 + m_topOffset),
                          WA_IDCMP, IDCMP_GADGETUP | IDCMP_GADGETDOWN | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS | IDCMP_CLOSEWINDOW | IDCMP_MENUPICK,
                          WA_Flags, WFLG_CLOSEGADGET | WFLG_DRAGBAR | WFLG_DEPTHGADGET | WFLG_ACTIVATE,
