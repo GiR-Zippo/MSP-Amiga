@@ -55,7 +55,7 @@ jobs:
         mkdir -p release_files
         cp demo release_files/
         # Falls vorhanden, Icons mitkopieren:
-        cp ../.github/images/demo.info release_files/
+        cp .github/images/demo.info release_files/
         zip -j MSP_latest.zip ./release_files/*
         cd release_files && lha ao ../MSP_latest.lha *
 
