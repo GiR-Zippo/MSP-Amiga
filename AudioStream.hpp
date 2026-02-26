@@ -15,6 +15,7 @@ class AudioStream
         virtual uint32_t    getDuration() const = 0;
         virtual uint32_t    getSampleRate() const = 0;
         virtual int         getChannels() const = 0;
+        virtual const char* getStation() const { return "\0"; }
         virtual const char* getTitle() const { return "Unknown Title"; }
         virtual const char* getArtist() const { return "Unknown Artist"; }
 };

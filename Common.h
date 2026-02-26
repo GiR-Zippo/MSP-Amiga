@@ -113,7 +113,7 @@ void dump_packet(const uint8_t *buffer, int len);
 void itoa(uint32_t n, char* s);
 
 #ifdef DEBUG
-    inline void DLog(const char* fmt, ...);
+    void DLog(const char* fmt, ...);
 #else
     inline void DLog(const char* fmt, ...) {}
 #endif

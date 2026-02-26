@@ -52,9 +52,7 @@ MainUi::MainUi()
     m_MainAppPort = NULL;
     m_AslBase = NULL;
     m_VolumeLevel = 70;
-    m_scrollOffset = 0;
-    m_scrollDirection = true; //left
-    m_isScrolling = false;
+    ResetScroller();
     m_topOffset = 20;
 }
 
@@ -334,7 +332,9 @@ void MainUi::UpdateDisplayInformation()
     }
 
     if (PlaybackRunner::getInstance()->GetStream() != NULL)
-        drawVideoPlaceholder(PlaybackRunner::getInstance()->GetStream()->getTitle(), PlaybackRunner::getInstance()->GetStream()->getArtist());
+        drawVideoPlaceholder(PlaybackRunner::getInstance()->GetStream()->getStation(),
+                             PlaybackRunner::getInstance()->GetStream()->getTitle(), 
+                             PlaybackRunner::getInstance()->GetStream()->getArtist());
 
 }
 
@@ -392,7 +392,7 @@ void MainUi::drawVideoPlaceholder()
     Text(rp, "AAC Player", 10);
 }
 
-void MainUi::drawVideoPlaceholder(const char *title, const char *artist)
+void MainUi::drawVideoPlaceholder(const char *station, const char *title, const char *artist)
 {
     if (!m_Window) return;
 
@@ -410,8 +410,9 @@ void MainUi::drawVideoPlaceholder(const char *title, const char *artist)
     SetAPen(rp, 2); 
 
     // Aufruf der Hilfsmethode (Ganz ohne auto/Lambda)
-    drawCenteredText(rp, title, x1, boxWidth, 55+m_topOffset);
-    drawCenteredText(rp, artist, x1, boxWidth, 80+m_topOffset);
+    drawCenteredText(rp, station, x1, boxWidth, 30+m_topOffset, Text_Top);
+    drawCenteredText(rp, title, x1, boxWidth, 55+m_topOffset, Text_Middle);
+    drawCenteredText(rp, artist, x1, boxWidth, 80+m_topOffset, Text_Bottom);
 
     // 3. Rahmen
     SetAPen(rp, 3);
@@ -422,7 +423,7 @@ void MainUi::drawVideoPlaceholder(const char *title, const char *artist)
     Draw(rp, x1, y1);
 }
 
-void MainUi::drawCenteredText(struct RastPort *rp, const char *text, int x1, int boxWidth, int yPos)
+void MainUi::drawCenteredText(struct RastPort *rp, const char *text, int x1, int boxWidth, int yPos, TextLines line)
 {
     if (text && text[0] != '\0')
     {
@@ -452,21 +453,21 @@ void MainUi::drawCenteredText(struct RastPort *rp, const char *text, int x1, int
         }
 
          // Wenn wir am Ende sind (Länge minus die 40 sichtbaren)
-        if (m_scrollOffset > (len - 42)) //41 zeichen + 1
-            m_scrollDirection = false;
+        if (m_scrollOffset[line] > (len - 42)) //41 zeichen + 1
+            m_scrollDirection[line] = false;
         else if (m_scrollOffset <= 0)
-            m_scrollDirection = true;
+            m_scrollDirection[line] = true;
 
         // Den Pointer im String verschieben
-        STRPTR scrollPtr = (STRPTR)&text[m_scrollOffset];
+        STRPTR scrollPtr = (STRPTR)&text[m_scrollOffset[line]];
 
         SetAPen(rp, 2);
         Move(rp, x1 + 5, yPos);
         Text(rp, scrollPtr, 41); //41 Zeichen bitte
-        if (m_scrollDirection)
-            m_scrollOffset++;
+        if (m_scrollDirection[line])
+            m_scrollOffset[line]++;
         else
-            m_scrollOffset--;
+            m_scrollOffset[line]--;
     }
 }
 

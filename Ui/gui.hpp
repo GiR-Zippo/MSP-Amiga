@@ -22,6 +22,14 @@ enum MainUiMenu
     MenuID_MAX
 };
 
+enum TextLines
+{
+    Text_Top = 0,
+    Text_Middle,
+    Text_Bottom,
+    Text_Max
+};
+
 class MainUi
 {
     public:
@@ -79,8 +87,11 @@ class MainUi
         /// @brief Resets the scroller
         void ResetScroller()
         {
-            m_scrollOffset = 0;
-            m_scrollDirection = true; //left
+            for (int i = 0; i < Text_Max; i++)
+            {
+                m_scrollOffset[i] = 0;
+                m_scrollDirection[i] = true; //left
+            }
             m_isScrolling = false;
         }
     private:
@@ -99,10 +110,10 @@ class MainUi
         void drawVideoPlaceholder();
         
         /// @brief Draws the black frame with title and artist
-        void drawVideoPlaceholder(const char* title, const char* artist);
+        void drawVideoPlaceholder(const char *station, const char* title, const char* artist);
 
         /// @brief Helper to draw a text centered
-        void drawCenteredText(struct RastPort *rp, const char *text, int x1, int boxWidth, int yPos);
+        void drawCenteredText(struct RastPort *rp, const char *text, int x1, int boxWidth, int yPos, TextLines line);
 
         /// @brief format timestring for timedisplay
         void formatTimeOldschool(char* b, uint32_t s);
@@ -120,8 +131,8 @@ class MainUi
         uint16_t        m_VolumeLevel;
 
         /* scroller */
-        int m_scrollOffset;
-        bool m_scrollDirection;
+        int m_scrollOffset[Text_Max];
+        bool m_scrollDirection[Text_Max];
         bool m_isScrolling;
 };
 #endif

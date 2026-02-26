@@ -58,6 +58,16 @@ bool NetworkStream::handleServerResponse(std::string response)
     if (strstr(response.c_str(), "200 OK"))
     {
         //get Icy-MetaData for titleinformation
+        if (strstr(response.c_str(), "icy-name:"))
+        {
+            size_t locPos = response.find("icy-name:");
+            if (locPos != std::string::npos)
+            {
+                size_t start = locPos + 10;
+                size_t end = response.find("\r\n", start);
+                writeToBuffer(m_station, response.substr(start, end - start).c_str());
+            }
+        }
         if (strstr(response.c_str(), "icy-metaint:"))
         {
             size_t locPos = response.find("icy-metaint:");

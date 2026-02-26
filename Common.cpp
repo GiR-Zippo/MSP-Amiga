@@ -283,7 +283,7 @@ float powf(float base, float exp)
 #endif
 
 #ifdef DEBUG
-    inline void DLog(const char* fmt, ...) {
+    void DLog(const char* fmt, ...) {
         char buffer[256];
         va_list args;
         va_start(args, fmt);
