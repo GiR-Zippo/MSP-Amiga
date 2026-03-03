@@ -2,6 +2,7 @@
 #include "Icecast.hpp"
 #include "../Ui/Playlist/PlaylistWindow.hpp"
 #include "MiniJson.hpp"
+#include "Configuration.hpp"
 
 Icecast::Icecast()
 {
@@ -29,7 +30,7 @@ void Icecast::FetchList(List &songList, const char* filter)
     if (filter && !filter[0] == '\0')
         fName = fName + "/search?hidebroken=true&name=" + SimpleEncode(filter) +"&";
     
-    fName = fName + "limit=300";
+    fName = fName + "limit=" + sConfiguration->GetConfigString(configKeys[CONF_MAX_WEBRADIO_LIST], "300");
     stringToLower(fName);
 
     size_t pos = fName.find("://");

@@ -56,6 +56,7 @@ class AHIPlayback
         float m_softwareVolume;  // 0.0 - 1.0
         bool m_pause;
         bool m_useSoftVol;
+        uint32_t m_ahiDevice;
 };
 
 #endif

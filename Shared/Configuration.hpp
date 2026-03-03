@@ -12,16 +12,20 @@ struct ConfigEntry
 enum 
 {
     CONF_SOFT_VOL = 0,
+    CONF_AHI_DEVICE,
     CONF_MIDI_VOICES,
     CONF_SOUNDFONT,
+    CONF_MAX_WEBRADIO_LIST,
     CONF_COUNT
 };
 
 static const char* configKeys[] =
 {
     "UseSoftVolume",
+    "AHIDevice",
     "MaxMidiVoices",
     "SoundFontFile",
+    "MaxWebRadioEntries",
     NULL
 };
 
@@ -44,6 +48,14 @@ class Configuration
         /*********************************************************/
         void LoadConfig();
         void SaveConfig();
+        uint32_t GetConfigUInt32(const char *key, int defaultValue)
+        {
+            for (int i = 0; i < m_numConfigEntries; i++)
+                if (strcmp(m_configEntries[i].key, key) == 0)
+                    return strtoul(m_configEntries[i].value, NULL, 10);
+            return defaultValue;
+        }
+
         int GetConfigInt(const char *key, int defaultValue)
         {
             for (int i = 0; i < m_numConfigEntries; i++)
@@ -67,7 +79,7 @@ class Configuration
             snprintf(valueStr, sizeof(valueStr), "%d", value);
             SetConfigString(key, valueStr);
         }
-        
+
         void SetConfigString(const char *key, const char *value)
         {
             if (!key || !value) return;

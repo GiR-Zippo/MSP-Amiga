@@ -20,6 +20,7 @@ AHIPlayback::AHIPlayback(AudioStream *s)
     m_softwareVolume = 1.0f;
     m_pause = false;
     m_useSoftVol = sConfiguration->GetConfigInt(configKeys[CONF_SOFT_VOL], 1);
+    m_ahiDevice = sConfiguration->GetConfigUInt32(configKeys[CONF_AHI_DEVICE], AHI_DEFAULT_ID);
     //setAmigaFilter(false);
 }
 
@@ -46,7 +47,7 @@ bool AHIPlayback::Init()
     }
 
     // AHI Gerät öffnen
-    if (OpenDevice((CONST_STRPTR)AHINAME, AHI_DEFAULT_ID, (struct IORequest *)m_req[0], 0))
+    if (OpenDevice((CONST_STRPTR)AHINAME, m_ahiDevice, (struct IORequest *)m_req[0], 0))
         return false;
 
     // Zweiten Request mit denselben Geräte-Daten initialisieren
