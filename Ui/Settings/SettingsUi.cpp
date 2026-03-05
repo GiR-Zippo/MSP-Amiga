@@ -8,14 +8,15 @@ static struct TagItem buttonTags[] = {{GTTX_Border, TRUE}, {TAG_DONE, 0}};
 static struct GadgetDef pageOneGadgets[] =
 {
     {CHECKBOX_KIND, 160, 10, 120, 20, "Soft Volume", SETTINGS_SOFTVOL, buttonTags},
-    {STRING_KIND,   160, 30, 130, 20, "AHI Device", SETTINGS_AHIDEVICE, buttonTags}
+    {STRING_KIND,   160, 30, 130, 20, "AHI Device", SETTINGS_AHIDEVICE, buttonTags},
+    {STRING_KIND,   160, 60, 130, 20, "AHI Buf Size", SETTINGS_AHIBUFFER, buttonTags}
 };
 
 static struct GadgetDef pageTwoGadgets[] =
 {
     {STRING_KIND, 160, 10, 130, 20, "Max Voices", SETTINGS_MIDI_VOICES, buttonTags},
     {STRING_KIND, 160, 30, 130, 20, "SF2", SETTINGS_MIDI_SF, buttonTags},
-    {BUTTON_KIND, 290, 30, 10, 20, "^", SETTINGS_MIDI_SF_OPEN, buttonTags},
+    {BUTTON_KIND, 290, 30, 10, 20, "^", SETTINGS_MIDI_SF_OPEN, buttonTags}
 };
 
 static struct GadgetDef pageThreeGadgets[] =
@@ -174,6 +175,12 @@ void SettingsUi::createGads(Gadget *context, int end, GadgetDef *defs)
                                    GTST_String, (Tag)sConfiguration->GetConfigString(configKeys[CONF_AHI_DEVICE], "0"),
                                    TAG_MORE, (Tag)defs[i].tags);
         }
+        else if (defs[i].id == SETTINGS_AHIBUFFER)
+        {
+            context = CreateGadget(defs[i].kind, context, &ng,
+                                   GTST_String, (Tag)sConfiguration->GetConfigString(configKeys[CONF_AHI_BUFFER], "16384"),
+                                   TAG_MORE, (Tag)defs[i].tags);
+        }
         else if (defs[i].id == SETTINGS_MIDI_VOICES)
         {
             context = CreateGadget(defs[i].kind, context, &ng,
@@ -238,6 +245,14 @@ void SettingsUi::UpdateUi()
                 struct StringInfo *si = (struct StringInfo *)gad->SpecialInfo;
                 strcpy(buffer, (const char *)si->Buffer);
                 sConfiguration->SetConfigString(configKeys[CONF_AHI_DEVICE], buffer);
+                sConfiguration->SaveConfig();
+            }
+            else if (gad->GadgetID == SETTINGS_AHIBUFFER)
+            {
+                char buffer[5];
+                struct StringInfo *si = (struct StringInfo *)gad->SpecialInfo;
+                strcpy(buffer, (const char *)si->Buffer);
+                sConfiguration->SetConfigString(configKeys[CONF_AHI_BUFFER], buffer);
                 sConfiguration->SaveConfig();
             }
             //Page Two

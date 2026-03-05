@@ -14,7 +14,9 @@ else
 endif
 
 # === Flags ===
-# -I. erlaubt das Inkludieren aus dem Projekt-Root
+# vorbis mag -m68881 nicht dr_mp3 wills aber... fliegts aus vorbis raus
+VORBIS_FLAGS = $(subst -m68881,,$(subst -ffast-math,,$(COMMON_FLAGS))) -msoft-float -DSTB_VORBIS_BIG_ENDIAN
+
 ifeq ($(USE_ADE), 0)
     COMMON_FLAGS = -O3 -Wall -m68040 -m68881 -ffast-math -fomit-frame-pointer -noixemul -fno-rtti -fno-exceptions -s -I.
 else
@@ -50,6 +52,12 @@ $(TARGET): $(OBJ)
 	@echo ">>> Linking $(TARGET)..."
 	$(CXX) $(OBJ) -o $@ $(LDFLAGS) $(LIBS)
 	@echo "Done."
+
+# --- Spezial-Regel für stb_vorbis.c ---
+$(BUILD_DIR)/%/stb_vorbis.o: %/stb_vorbis.c
+	@mkdir -p $(dir $@)
+	@echo "Compiling C (Special Soft-Float): $<"
+	$(CC) $(VORBIS_FLAGS) -MMD -c $< -o $@
 
 # Regel für C++ Dateien (.cpp)
 $(BUILD_DIR)/%.o: %.cpp

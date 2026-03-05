@@ -69,6 +69,8 @@ class PlaybackRunner
         PlaybackRunner(const PlaybackRunner&); // Prevent copy
         PlaybackRunner& operator=(const PlaybackRunner&); // Prevent assignment
 
+        int             identifyOggType(const char *filename);
+
         struct Process *m_playerProc;
         AudioStream    *m_stream;
         int             m_songEndSignal;

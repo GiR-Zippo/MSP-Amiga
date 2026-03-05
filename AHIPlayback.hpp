@@ -50,7 +50,7 @@ class AHIPlayback
         int                 m_current;
 
         // Konstanten für die Konfiguration
-        static const uint32_t BUFSIZE = 16384;
+        uint32_t BUFSIZE;
         static const uint16_t AHI_TYPE = AHIST_S16S;
         LONG m_volume;
         float m_softwareVolume;  // 0.0 - 1.0

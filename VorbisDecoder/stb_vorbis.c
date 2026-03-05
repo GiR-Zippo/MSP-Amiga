@@ -446,7 +446,7 @@ enum STBVorbisError
 // STB_VORBIS_NO_FAST_SCALED_FLOAT
 //      does not use a fast float-to-int trick to accelerate float-to-int on
 //      most platforms which requires endianness be defined correctly.
-//#define STB_VORBIS_NO_FAST_SCALED_FLOAT
+// #define STB_VORBIS_NO_FAST_SCALED_FLOAT
 
 
 // STB_VORBIS_MAX_CHANNELS [number]

@@ -13,6 +13,7 @@ enum
 {
     CONF_SOFT_VOL = 0,
     CONF_AHI_DEVICE,
+    CONF_AHI_BUFFER,
     CONF_MIDI_VOICES,
     CONF_SOUNDFONT,
     CONF_MAX_WEBRADIO_LIST,
@@ -23,6 +24,7 @@ static const char* configKeys[] =
 {
     "UseSoftVolume",
     "AHIDevice",
+    "AHIBufferSize",
     "MaxMidiVoices",
     "SoundFontFile",
     "MaxWebRadioEntries",

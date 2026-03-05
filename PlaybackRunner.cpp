@@ -4,12 +4,13 @@
 #include "FLACDecoder/FlacStream.hpp"
 #include "MP3Decoder/MP3Stream.hpp"
 #include "VorbisDecoder/VorbisStream.hpp"
+#include "OpusDecoder/OpusStream.hpp"
 #include "M4ADecoder/M4ADecoder.hpp"
 #include "WebRadioDecoder/StreamClient.hpp"
 #include "MIDIDecoder/MidiAudioStream.hpp"
 #include "Ui/gui.hpp"
 
-PlaybackRunner* PlaybackRunner::instance = NULL;
+PlaybackRunner *PlaybackRunner::instance = NULL;
 
 PlaybackRunner::PlaybackRunner()
 {
@@ -84,7 +85,15 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
         else if (strstr(file.c_str(), ".aac"))
             m_stream = new AACStream();
         else if (strstr(file.c_str(), ".ogg"))
-            m_stream = new VorbisStream();
+        {
+            int type = identifyOggType(file.c_str());
+            if (type == -1)
+                return false;
+            else if (type == 0)
+                m_stream = new OpusStream();
+            else if (type == 1)
+                m_stream = new VorbisStream();
+        }
         else if (strstr(file.c_str(), ".m4a"))
             m_stream = new M4AStream();
         else if (strstr(file.c_str(), ".mid"))
@@ -130,6 +139,33 @@ void PlaybackRunner::StopPlayback()
     }
 }
 
+int PlaybackRunner::identifyOggType(const char *filename)
+{
+    FILE *f = fopen(filename, "rb");
+    if (!f)
+        return -1;
+
+    uint8_t buffer[64];
+    size_t readLen = fread(buffer, 1, 64, f);
+    fclose(f);
+
+    if (readLen < 35)
+        return -1;
+
+    // 1. Check ob es überhaupt ein Ogg ist
+    if (buffer[0] != 'O' || buffer[1] != 'g' || buffer[2] != 'g' || buffer[3] != 'S')
+        return -1;
+
+    uint8_t headerLen = 27 + buffer[26];
+    uint8_t *startOfPacket = &buffer[headerLen];
+    if (memcmp(startOfPacket, "OpusHead", 8) == 0)
+        return 0;
+
+    if (startOfPacket[0] == 0x01 && memcmp(&startOfPacket[1], "vorbis", 6) == 0)
+        return 1;
+    return -1;
+}
+
 void PlaybackRunner::PlayerTaskFunc()
 {
     struct Process *me = (struct Process *)FindTask(NULL);
@@ -138,14 +174,14 @@ void PlaybackRunner::PlayerTaskFunc()
     bool _audioInitDone = false;
     bool _updateWait = false;
 
-    int timeout = 100;  // Max 2 Sekunden
+    int timeout = 100; // Max 2 Sekunden
     while (!pb && timeout-- > 0)
     {
         pb = (PlayerArgs *)me->pr_Task.tc_UserData;
         if (!pb)
             Delay(1);
     }
-    
+
     // no data
     if (!pb)
     {
@@ -161,7 +197,7 @@ void PlaybackRunner::PlayerTaskFunc()
         if (!pb || !pb->stream)
             break;
 
-            // die Laustärke hier setzen
+        // die Laustärke hier setzen
         if (playback->GetVolume() != pb->volumeLevel)
             playback->SetVolume(pb->volumeLevel);
 
@@ -186,8 +222,8 @@ void PlaybackRunner::PlayerTaskFunc()
         }
 
         // die Dudelroutine
-        if (PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING) && 
-            !PlaybackRunner::getInstance()->hasFlag(PFLAG_SEEK) && 
+        if (PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING) &&
+            !PlaybackRunner::getInstance()->hasFlag(PFLAG_SEEK) &&
             !PlaybackRunner::getInstance()->hasFlag(PFLAG_PAUSE))
         {
             _updateWait = true;
@@ -198,7 +234,7 @@ void PlaybackRunner::PlayerTaskFunc()
                 playback->Stop();
                 pb->stream->seek(0);
                 DLog("Task: Song beendet.\n");
-                //raus hier
+                // raus hier
                 break;
             }
             _updateWait = false;

@@ -3,7 +3,7 @@
 #include "Shared/Configuration.hpp"
 #include "Ui/gui.hpp"
 
-#define BUFSIZE 16384
+//#define BUFSIZE 16384
 #define TYPE AHIST_S16S
 // CIA-A Port A Adresse: 0xBFE001
 volatile unsigned char *ciaa_porta = (unsigned char *)0xBFE001;
@@ -11,6 +11,7 @@ volatile unsigned char *ciaa_porta = (unsigned char *)0xBFE001;
 AHIPlayback::AHIPlayback(AudioStream *s)
     : m_stream(s), m_port(NULL), m_active(false)
 {
+    BUFSIZE = sConfiguration->GetConfigInt(configKeys[CONF_AHI_BUFFER], 16384);
     m_req[0] = m_req[1] = NULL;
     m_buffer[0] = new short[BUFSIZE / sizeof(short)];
     m_buffer[1] = new short[BUFSIZE / sizeof(short)];
@@ -115,6 +116,11 @@ bool AHIPlayback::fillBufferFromStream(short *buf, int maxBytes, int &m_bytesRea
 {
     int samplesToRead = maxBytes / sizeof(short);
     int read = m_stream->readSamples(buf, samplesToRead);
+    if (read == 0)
+    {
+        m_bytesRead = 0;
+        return false;
+    }
 
     if (m_useSoftVol)
     {
