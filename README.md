@@ -4,7 +4,7 @@
 just a test how to NOT build a audioplayer for an Amiga
 
 ## Formats supported:
-M4A, ACC, FLAC, OGG/Vorbis, MP123, Midi
+M4A, ACC, FLAC, OGG/Vorbis, ogg/opus, MP123, Midi
 
 WebStreams: HTTP/HTTPS MP3 and AAC+ only
 

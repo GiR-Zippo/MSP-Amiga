@@ -70,12 +70,15 @@ void silk_apply_sine_window(
     silk_assert( c_Q16 >= -32768 );
 
     /* initialize state */
-    if( win_type == 1 ) {
+    if( win_type == 1 )
+    {
         /* start from 0 */
         S0_Q16 = 0;
         /* approximation of sin(f) */
         S1_Q16 = f_Q16 + silk_RSHIFT( length, 3 );
-    } else {
+    }
+    else
+    {
         /* start from 1 */
         S0_Q16 = ( (opus_int32)1 << 16 );
         /* approximation of cos(f) */
@@ -84,7 +87,8 @@ void silk_apply_sine_window(
 
     /* Uses the recursive equation:   sin(n*f) = 2 * cos(f) * sin((n-1)*f) - sin((n-2)*f)    */
     /* 4 samples at a time */
-    for( k = 0; k < length; k += 4 ) {
+    for( k = 0; k < length; k += 4 )
+    {
         px_win[ k ]     = (opus_int16)silk_SMULWB( silk_RSHIFT( S0_Q16 + S1_Q16, 1 ), px[ k ] );
         px_win[ k + 1 ] = (opus_int16)silk_SMULWB( S1_Q16, px[ k + 1] );
         S0_Q16 = silk_SMULWB( S1_Q16, c_Q16 ) + silk_LSHIFT( S1_Q16, 1 ) - S0_Q16 + 1;

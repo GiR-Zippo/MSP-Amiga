@@ -53,7 +53,6 @@
 #include "lpcnet.h"
 #endif
 
-#define CELTEncoder OpusCustomEncoder
 #define CELTDecoder OpusCustomDecoder
 #define CELTMode OpusCustomMode
 
@@ -90,7 +89,7 @@ typedef struct {
 
 #define celt_check_glog_ptr(ptr) ((ptr) + ((ptr) - (celt_glog*)(ptr)))
 
-/* Encoder/decoder Requests */
+/* decoder Requests */
 
 
 #define CELT_SET_PREDICTION_REQUEST    10002
@@ -151,17 +150,6 @@ static OPUS_INLINE opus_int32 bitrate_to_bits(opus_int32 bitrate, opus_int32 Fs,
    return bitrate*6/(6*Fs/frame_size);
 }
 
-/* Encoder stuff */
-
-int celt_encoder_get_size(int channels);
-
-int celt_encode_with_ec(OpusCustomEncoder * OPUS_RESTRICT st, const opus_res * pcm, int frame_size, unsigned char *compressed, int nbCompressedBytes, ec_enc *enc);
-
-int celt_encoder_init(CELTEncoder *st, opus_int32 sampling_rate, int channels,
-                      int arch);
-
-
-
 /* Decoder stuff */
 
 int celt_decoder_get_size(int channels);
@@ -180,7 +168,6 @@ int celt_decode_with_ec_dred(CELTDecoder * OPUS_RESTRICT st, const unsigned char
 int celt_decode_with_ec(OpusCustomDecoder * OPUS_RESTRICT st, const unsigned char *data,
       int len, opus_res * OPUS_RESTRICT pcm, int frame_size, ec_dec *dec, int accum);
 
-#define celt_encoder_ctl opus_custom_encoder_ctl
 #define celt_decoder_ctl opus_custom_decoder_ctl
 
 

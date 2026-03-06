@@ -69,6 +69,8 @@ class PlaybackRunner
         PlaybackRunner(const PlaybackRunner&); // Prevent copy
         PlaybackRunner& operator=(const PlaybackRunner&); // Prevent assignment
 
+        /// @brief detect if Opus or Vorbis
+        /// @return -1 none; 0 - opus; 1 - vorbis
         int             identifyOggType(const char *filename);
 
         struct Process *m_playerProc;

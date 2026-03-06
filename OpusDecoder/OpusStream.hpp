@@ -1,16 +1,9 @@
-/* OpusStream.hpp - Opus Audio Stream für Player
- * Dekodiert Ogg/Opus Dateien zu PCM
- */
-
 #ifndef OPUS_STREAM_HPP
 #define OPUS_STREAM_HPP
 
 #include "AudioStream.hpp"
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
+#include "../Common.h"
 
-// Forward declarations (aus libopus)
 typedef struct OpusDecoder OpusDecoder;
 
 class OpusStream : public AudioStream
@@ -18,10 +11,6 @@ class OpusStream : public AudioStream
 private:
     FILE *m_file;
     OpusDecoder *m_decoder;
-    
-    // Metadata
-    char m_title[256];
-    char m_artist[256];
     
     // Ogg State
     uint32_t m_serialNo;
@@ -85,9 +74,6 @@ private:
     bool parseOpusTags();
     bool readNextPacket();
     bool decodePacket();
-    bool calculateTotalTime(const char *filename);
-    // Helper
-    void extractMetadata(const uint8_t *data, int size);
 };
 
 #endif /* OPUS_STREAM_HPP */

@@ -21,7 +21,6 @@ class VorbisStream : public AudioStream
         bool     isValid()       const { return m_v != NULL; }
 
     private:
-        bool readDuration(const char *filename);
         struct stb_vorbis* m_v;
         int      m_sampleRate;
         int      m_channels;

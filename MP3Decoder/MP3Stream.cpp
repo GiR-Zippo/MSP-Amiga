@@ -12,6 +12,7 @@ extern "C"
 
 MP3Stream::MP3Stream() : m_initialized(false)
 {
+    m_duration = 0;
     setTitle("Unknown Title");
     setArtist("Unknown Artist");
 }

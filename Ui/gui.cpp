@@ -235,7 +235,7 @@ bool MainUi::UpdateUi()
             {
                 // keine playlist mehr
                 PlaylistWindow::getInstance()->SetUsePlaylist(false);
-                PlaybackRunner::getInstance()->StartPlaybackTask(SharedUiFunctions::OpenFileRequest("#?.(aac|m4a|flac|mp3|ogg|mid)"));
+                PlaybackRunner::getInstance()->StartPlaybackTask(SharedUiFunctions::OpenFileRequest("#?.(aac|m4a|flac|mp3|ogg|opus|mid)"));
             }
             else if (gad->GadgetID == ID_PLAYLIST)
             {

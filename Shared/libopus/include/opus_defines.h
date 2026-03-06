@@ -64,13 +64,7 @@ extern "C" {
 /**Export control for opus functions */
 
 #ifndef OPUS_EXPORT
-# if defined(_WIN32)
-#  if defined(OPUS_BUILD) && defined(DLL_EXPORT)
-#   define OPUS_EXPORT __declspec(dllexport)
-#  else
-#   define OPUS_EXPORT
-#  endif
-# elif defined(__GNUC__) && defined(OPUS_BUILD)
+# if defined(__GNUC__) && defined(OPUS_BUILD)
 #  define OPUS_EXPORT __attribute__ ((visibility ("default")))
 # else
 #  define OPUS_EXPORT
@@ -89,8 +83,6 @@ extern "C" {
 #if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
 # if OPUS_GNUC_PREREQ(3,0)
 #  define OPUS_RESTRICT __restrict__
-# elif (defined(_MSC_VER) && _MSC_VER >= 1400)
-#  define OPUS_RESTRICT __restrict
 # else
 #  define OPUS_RESTRICT
 # endif

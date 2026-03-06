@@ -251,15 +251,6 @@ OPUS_CUSTOM_EXPORT OPUS_WARN_UNUSED_RESULT int opus_custom_encode24(
     int maxCompressedBytes
 ) OPUS_ARG_NONNULL(1) OPUS_ARG_NONNULL(2) OPUS_ARG_NONNULL(4);
 
-/** Perform a CTL function on an Opus custom encoder.
-  *
-  * Generally the request and subsequent arguments are generated
-  * by a convenience macro.
-  * @see opus_encoderctls
-  */
-OPUS_CUSTOM_EXPORT int opus_custom_encoder_ctl(OpusCustomEncoder * OPUS_RESTRICT st, int request, ...) OPUS_ARG_NONNULL(1);
-
-
 #if !defined(OPUS_BUILD) || defined(CELT_DECODER_C)
 /* Decoder */
 

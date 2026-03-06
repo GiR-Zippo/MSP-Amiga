@@ -1,17 +1,8 @@
-/* OpusStream.cpp - Opus Stream Implementation */
-
 #include "OpusStream.hpp"
-#include <stdlib.h>
-#include <proto/exec.h>
-
-// Opus API (aus libopus)
+#include "../Shared/oggtag/oggtag.hpp"
 extern "C"
 {
-    OpusDecoder *opus_decoder_create(int32_t Fs, int channels, int *error);
-    void opus_decoder_destroy(OpusDecoder *st);
-    int opus_decode(OpusDecoder *st, const unsigned char *data, int32_t len,
-                    int16_t *pcm, int frame_size, int decode_fec);
-    int opus_decoder_ctl(OpusDecoder *st, int request, ...);
+#include "../Shared/libopus/include/opus.h"
 }
 
 #define OPUS_OK 0
@@ -23,8 +14,8 @@ OpusStream::OpusStream()
     m_currentSegmentIdx = 0;
     m_currentPage.numSegments = 0;
     m_duration = 0;
-    m_title[0] = '\0';
-    m_artist[0] = '\0';
+    setTitle("Unknown Title");
+    setArtist("Unknown Artist");
 }
 
 OpusStream::~OpusStream()
@@ -37,16 +28,21 @@ bool OpusStream::open(const char *filename)
     if (!filename)
         return false;
 
-    calculateTotalTime(filename);
-
     DLog("OpusStream: Opening '%s'\n", filename);
-
     m_file = fopen(filename, "rb");
     if (!m_file)
     {
         DLog("OpusStream: Failed to open file\n");
         return false;
     }
+
+    OggMeta meta = OggOpusReaderWriter::ReadMetaData(filename);
+    m_duration = meta.duration;
+    if (!meta.title.empty())
+        setTitle(meta.title.c_str());
+
+    if (!meta.artist.empty())
+        setArtist(meta.artist.c_str());
 
     // Parse Opus Header
     if (!parseOpusHeader())
@@ -80,11 +76,6 @@ bool OpusStream::open(const char *filename)
     DLog("  Channels: %d\n", m_channels);
     DLog("  Sample Rate: 48000 Hz\n");
     DLog("  Pre-skip: %d samples\n", m_preskip);
-
-    if (m_title[0] != '\0')
-        printf("  Title: %s\n", m_title);
-    if (m_artist[0] != '\0')
-        printf("  Artist: %s\n", m_artist);
 
     m_initialized = true;
     m_samplesDecoded = 0;
@@ -317,9 +308,6 @@ bool OpusStream::parseOpusTags()
     if (m_packetSize < 8 || memcmp(m_packetBuffer, "OpusTags", 8) != 0)
         return true; // Not fatal
 
-    // Extract metadata
-    extractMetadata(m_packetBuffer + 8, m_packetSize - 8);
-
     return true;
 }
 
@@ -397,127 +385,4 @@ bool OpusStream::decodePacket()
     m_samplesDecoded += framesPerChannel;
 
     return true;
-}
-
-void OpusStream::extractMetadata(const uint8_t *data, int size)
-{
-    // Very simple Vorbis comment parser
-    if (size < 4)
-        return;
-
-    uint32_t vendorLen;
-    memcpy(&vendorLen, data, 4);
-
-    int offset = 4 + vendorLen;
-    if (offset + 4 > size)
-        return;
-
-    uint32_t numComments;
-    memcpy(&numComments, data + offset, 4);
-    offset += 4;
-
-    for (uint32_t i = 0; i < numComments && offset < size; i++)
-    {
-        if (offset + 4 > size)
-            break;
-
-        uint32_t commentLen;
-        memcpy(&commentLen, data + offset, 4);
-        offset += 4;
-
-        if (offset + commentLen > (uint32_t)size)
-            break;
-
-        const char *comment = (const char *)(data + offset);
-
-        // Parse TITLE=...
-        if (commentLen > 6 && strncasecmp(comment, "TITLE=", 6) == 0)
-        {
-            int len = commentLen - 6;
-            if (len > 255)
-                len = 255;
-            char buf[127];
-            memcpy(buf, comment + 6, len);
-            buf[len] = '\0';
-            setTitle(buf);
-        }
-        // Parse ARTIST=...
-        else if (commentLen > 7 && strncasecmp(comment, "ARTIST=", 7) == 0)
-        {
-            int len = commentLen - 7;
-            if (len > 255)
-                len = 255;
-            char buf[127];
-            memcpy(buf, comment + 7, len);
-            buf[len] = '\0';
-            setArtist(buf);
-        }
-
-        offset += commentLen;
-    }
-}
-
-bool OpusStream::calculateTotalTime(const char *filename)
-{
-    FILE *f = fopen(filename, "rb");
-    if (!f)
-    {
-        DLog("Datei konnte nicht geöffnet werden\n");
-        return false;
-    }
-
-    uint32_t sampleRate = 48000;
-
-    // Der Vorbis-Ident-Header startet nach dem Ogg-Header (28 Bytes)
-    fseek(f, 0x28, SEEK_SET);
-
-    if (sampleRate == 0)
-        return false;
-
-    // Letzte Ogg-Page am Ende der Datei suchen
-    fseek(f, 0, SEEK_END);
-    long fileSize = ftell(f);
-    long currentEnd = fileSize;
-    const int CHUNK_SIZE = 4096; // Wir lesen in 4KB Schritten rückwärts
-    uint8_t buffer[CHUNK_SIZE];
-
-    while (currentEnd > 0)
-    {
-        long readStart = currentEnd - CHUNK_SIZE;
-        if (readStart < 0)
-            readStart = 0;
-        int toRead = currentEnd - readStart;
-
-        fseek(f, readStart, SEEK_SET);
-        if (fread(buffer, 1, toRead, f) != (size_t)toRead)
-            break;
-
-        // Suche innerhalb des aktuellen Buffers von hinten nach vorne
-        for (int i = toRead - 4; i >= 0; i--)
-        {
-            if (buffer[i] == 'O' && buffer[i + 1] == 'g' && buffer[i + 2] == 'g' && buffer[i + 3] == 'S')
-            {
-                uint8_t *p = &buffer[i + 6];
-                uint64_t granule = (uint64_t)p[0] | ((uint64_t)p[1] << 8) | ((uint64_t)p[2] << 16) |
-                                   ((uint64_t)p[3] << 24) | ((uint64_t)p[4] << 32) | ((uint64_t)p[5] << 40) |
-                                   ((uint64_t)p[6] << 48) | ((uint64_t)p[7] << 56);
-
-                if (granule != 0 && granule != 0xFFFFFFFFFFFFFFFFULL)
-                {
-                    // GEFUNDEN!
-                    double durationSec = (double)granule / (double)sampleRate;
-                    m_duration = (uint32_t)durationSec;
-                    return true;
-                }
-            }
-        }
-
-        // Wenn in diesem Block nichts war, gehen wir einen Block weiter vor
-        currentEnd = readStart;
-
-        // Sicherheitsstopp: Wir scannen nicht die ganze Datei (Metadaten sind selten > 1MB)
-        if (fileSize - currentEnd > 1024 * 1024)
-            break;
-    }
-    return false;
 }

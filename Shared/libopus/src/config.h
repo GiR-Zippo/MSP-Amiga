@@ -24,11 +24,6 @@
 
 /* Disable all assembly optimizations */
 #define USE_SMALL_DIV_TABLE 0
-#define OPUS_X86_ASM 0
-#define OPUS_ARM_INLINE_ASM 0
-#define OPUS_ARM_INLINE_EDSP 0
-#define OPUS_ARM_INLINE_MEDIA 0
-#define OPUS_ARM_INLINE_NEON 0
 
 /* Stack allocation - use VAR_ARRAYS for GCC 2.9 compatibility */
 #define VAR_ARRAYS 1

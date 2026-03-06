@@ -1085,8 +1085,7 @@ static unsigned quant_partition(struct band_ctx *ctx, celt_norm *X,
             extra_bits = IMAX(extra_bits-1, 0);
          }
          extra_bits = IMIN(14, extra_bits);
-         if (encode) cm = cubic_quant(X, N, extra_bits, B, ctx->ext_ec, gain, ctx->resynth);
-         else cm = cubic_unquant(X, N, extra_bits, B, ctx->ext_ec, gain);
+         cm = cubic_unquant(X, N, extra_bits, B, ctx->ext_ec, gain);
 #endif
       } else {
          /* If there's no pulse, fill the band anyway */
@@ -1146,8 +1145,7 @@ static unsigned cubic_quant_partition(struct band_ctx *ctx, celt_norm *X, int N,
       /* Resolution left after taking into account coding the cube face. */
       res = (b-(1<<BITRES)-ctx->m->logN[ctx->i]-(LM<<BITRES)-1)/(N-1)>>BITRES;
       res = IMIN(14, IMAX(0, res));
-      if (encode) ret = cubic_quant(X, N, res, B, ec, gain, resynth);
-      else ret = cubic_unquant(X, N, res, B, ec, gain);
+      ret = cubic_unquant(X, N, res, B, ec, gain);
       ctx->remaining_bits = ctx->ec->storage*8*8 - ec_tell_frac(ctx->ec);
       return ret;
    } else {
@@ -1166,13 +1164,7 @@ static unsigned cubic_quant_partition(struct band_ctx *ctx, celt_norm *X, int N,
       LM -= 1;
       B = (B+1)>>1;
       theta_res = IMIN(16, (b>>BITRES)/(N0-1) + 1);
-      if (encode) {
-         itheta_q30 = stereo_itheta(X, Y, 0, N, ctx->arch);
-         qtheta = (itheta_q30+(1<<(29-theta_res)))>>(30-theta_res);
-         ec_enc_uint(ec, qtheta, (1<<theta_res)+1);
-      } else {
-         qtheta = ec_dec_uint(ec, (1<<theta_res)+1);
-      }
+      qtheta = ec_dec_uint(ec, (1<<theta_res)+1);
       itheta_q30 = qtheta<<(30-theta_res);
       b -= theta_res<<BITRES;
       delta = (N0-1) * 23 * ((itheta_q30>>16)-8192) >> (17-BITRES);
@@ -1217,10 +1209,8 @@ static unsigned quant_band(struct band_ctx *ctx, celt_norm *X,
    int longBlocks;
    unsigned cm=0;
    int k;
-   int encode;
    int tf_change;
 
-   encode = ctx->encode;
    tf_change = ctx->tf_change;
 
    longBlocks = B0==1;
@@ -1248,8 +1238,6 @@ static unsigned quant_band(struct band_ctx *ctx, celt_norm *X,
       static const unsigned char bit_interleave_table[16]={
             0,1,1,1,2,3,3,3,2,3,3,3,2,3,3,3
       };
-      if (encode)
-         haar1(X, N>>k, 1<<k);
       if (lowband)
          haar1(lowband, N>>k, 1<<k);
       fill = bit_interleave_table[fill&0xF]|bit_interleave_table[fill>>4]<<2;
@@ -1260,8 +1248,6 @@ static unsigned quant_band(struct band_ctx *ctx, celt_norm *X,
    /* Increasing the time resolution */
    while ((N_B&1) == 0 && tf_change<0)
    {
-      if (encode)
-         haar1(X, N_B, B);
       if (lowband)
          haar1(lowband, N_B, B);
       fill |= fill<<B;
@@ -1276,8 +1262,6 @@ static unsigned quant_band(struct band_ctx *ctx, celt_norm *X,
    /* Reorganize the samples in time order instead of frequency order */
    if (B0>1)
    {
-      if (encode)
-         deinterleave_hadamard(X, N_B>>recombine, B0<<recombine, longBlocks);
       if (lowband)
          deinterleave_hadamard(lowband, N_B>>recombine, B0<<recombine, longBlocks);
    }
@@ -1356,10 +1340,8 @@ static unsigned quant_band_stereo(struct band_ctx *ctx, celt_norm *X, celt_norm 
    int qalloc;
    struct split_ctx sctx;
    int orig_fill;
-   int encode;
    ec_ctx *ec;
 
-   encode = ctx->encode;
    ec = ctx->ec;
 
    /* Special case for one sample */
@@ -1370,12 +1352,6 @@ static unsigned quant_band_stereo(struct band_ctx *ctx, celt_norm *X, celt_norm 
 
    orig_fill = fill;
 
-   if (encode) {
-      if (ctx->bandE[ctx->i] < MIN_STEREO_ENERGY || ctx->bandE[ctx->m->nbEBands+ctx->i] < MIN_STEREO_ENERGY) {
-         if (ctx->bandE[ctx->i] > ctx->bandE[ctx->m->nbEBands+ctx->i]) OPUS_COPY(Y, X, N);
-         else OPUS_COPY(X, Y, N);
-      }
-   }
    compute_theta(ctx, &sctx, X, Y, N, &b, B, B, LM, 1, &fill ARG_QEXT(&ext_b));
    inv = sctx.inv;
    imid = sctx.imid;

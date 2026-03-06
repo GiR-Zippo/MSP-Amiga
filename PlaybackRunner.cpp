@@ -94,6 +94,8 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
             else if (type == 1)
                 m_stream = new VorbisStream();
         }
+        else if (strstr(file.c_str(), ".opus"))
+            m_stream = new OpusStream();
         else if (strstr(file.c_str(), ".m4a"))
             m_stream = new M4AStream();
         else if (strstr(file.c_str(), ".mid"))
