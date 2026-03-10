@@ -53,7 +53,7 @@ void NetworkStream::decodeUrlData(std::string url)
 bool NetworkStream::handleServerResponse(std::string response)
 {
     //printf("%s\n", response.c_str());
-    m_codec = 255;
+    m_isAudioStream = false;
 
     if (strstr(response.c_str(), "200 OK"))
     {
@@ -68,30 +68,11 @@ bool NetworkStream::handleServerResponse(std::string response)
                 setStation(response.substr(start, end - start).c_str());
             }
         }
-        if (strstr(response.c_str(), "icy-metaint:"))
-        {
-            size_t locPos = response.find("icy-metaint:");
-            if (locPos != std::string::npos)
-            {
-                size_t start = locPos + 13;
-                size_t end = response.find("\r\n", start);
-                m_icyInterval = atoi(response.substr(start, end - start).c_str());
-            }
-        }
         //get codec-type
-        if (strstr(response.c_str(), "Content-Type: audio/mpeg") ||
-            strstr(response.c_str(), "Content-Type: audio/mp3"))
+        if (strstr(response.c_str(), "Content-Type: audio")||
+            strstr(response.c_str(), "Content-Type: application/ogg"))
         {
-            // Es ist MP3
-            m_codec = 0;
-            return true;
-        }
-        else if (strstr(response.c_str(), "Content-Type: audio/aac") ||
-                 strstr(response.c_str(), "Content-Type: audio/aacp") ||
-                 strstr(response.c_str(), "Content-Type: audio/mp4"))
-        {
-            // Es ist AAC / AAC+
-            m_codec = 1;
+            m_isAudioStream = true;
             return true;
         }
     }

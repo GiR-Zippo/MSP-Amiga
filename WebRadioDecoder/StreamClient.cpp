@@ -12,7 +12,7 @@ NetworkStream::NetworkStream() : m_connected(false), m_terminate(false),
     m_totalSamples = 0;
     m_isHTTP = true;
     m_stop = false;
-    m_codec = 255;
+    m_isAudioStream = false;
     m_icyInterval = -1;
     m_station[0] = 0;
     m_title[0] = 0;
@@ -54,7 +54,7 @@ bool NetworkStream::open(const char *filename)
 
     // test if we have the right URL
     int redirects = 5;
-    while (redirects-- > 0 && m_codec == 255)
+    while (redirects-- > 0 && !m_isAudioStream)
     {
         if (!testConnection())
         {
@@ -64,7 +64,7 @@ bool NetworkStream::open(const char *filename)
             return false;
         }
     }
-    if (m_codec == 255)
+    if (!m_isAudioStream)
     {
         Forbid();
         m_stop = true;

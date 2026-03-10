@@ -1,25 +1,30 @@
 #include "VorbisStream.hpp"
 #include "../Shared/oggtag/oggtag.hpp"
 
-// WICHTIG für Amiga (Big Endian)
-#define STB_VORBIS_HEADER_ONLY
-#include "stb_vorbis.c"
-
-VorbisStream::VorbisStream() 
-    : m_v(NULL), m_sampleRate(0), m_channels(0), m_duration(0)
+VorbisStream::VorbisStream()
+    : m_file(NULL), m_initialized(false), m_channels(2),
+      m_sampleRate(44100), m_duration(0), m_currentSection(0),
+      m_pcmBufferSize(0), m_pcmBufferPos(0)
 {
+    memset(&m_vf, 0, sizeof(m_vf));
     setTitle("Unknown Title");
     setArtist("Unknown Artist");
 }
 
 VorbisStream::~VorbisStream()
 {
-    if (m_v)
-        stb_vorbis_close(m_v);
+    close();
 }
 
-bool VorbisStream::open(const char* filename)
+bool VorbisStream::open(const char *filename)
 {
+    if (!filename)
+        return false;
+
+    m_file = fopen(filename, "rb");
+    if (!m_file)
+        return false;
+
     OggMeta meta = OggOpusReaderWriter::ReadMetaData(filename);
     m_duration = meta.duration;
     if (!meta.title.empty())
@@ -28,63 +33,112 @@ bool VorbisStream::open(const char* filename)
     if (!meta.artist.empty())
         setArtist(meta.artist.c_str());
 
-    int error;
-    m_v = stb_vorbis_open_filename((char*)filename, &error, NULL);
-    
-    if (!m_v) {
-        DLog("stb_vorbis: Fehler beim Öffnen von '%s'. Code: %d\n", filename, error);
+    if (ov_open(m_file, &m_vf, NULL, 0) < 0)
+    {
+        fclose(m_file);
+        m_file = NULL;
         return false;
     }
-    
-    stb_vorbis_info info = stb_vorbis_get_info(m_v);
-    m_sampleRate = info.sample_rate;
-    m_channels   = info.channels;
+
+    vorbis_info *vi = ov_info(&m_vf, -1);
+    if (!vi)
+    {
+        ov_clear(&m_vf);
+        m_file = NULL;
+        return false;
+    }
+
+    m_channels   = vi->channels;
+    m_sampleRate = vi->rate;
+
+    // Duration in Sekunden
+    ogg_int64_t total = ov_pcm_total(&m_vf, -1);
+    if (total > 0)
+        m_duration = (uint32_t)(total / m_sampleRate);
+
+    m_pcmBufferSize = 0;
+    m_pcmBufferPos  = 0;
+    m_initialized   = true;
+
     return true;
 }
 
-int VorbisStream::readSamples(short* buffer, int samplesToRead) {
-    if (!m_v) return 0;
-
-    // Wir fordern immer 2 Kanäle an (Stereo-Interleaved) für AHI
-    // stb_vorbis übernimmt das Up/Downmixing automatisch
-    return stb_vorbis_get_samples_short_interleaved(m_v, 2, buffer, samplesToRead);
-}
-
-uint32_t VorbisStream::getCurrentSeconds() const
+void VorbisStream::close()
 {
-    if (!m_v) return 0;
-
-    stb_vorbis_info info = stb_vorbis_get_info(m_v);
-    if (info.sample_rate == 0) return 0;
-    return (uint32_t)(stb_vorbis_get_sample_offset(m_v) / info.sample_rate);
+    if (m_initialized)
+    {
+        ov_clear(&m_vf);   // Schließt auch m_file intern
+        m_file        = NULL;
+        m_initialized = false;
+    }
+    else if (m_file)
+    {
+        fclose(m_file);
+        m_file = NULL;
+    }
 }
 
 bool VorbisStream::seek(uint32_t targetSeconds)
 {
-    if (!m_v) return false;
-    
-    stb_vorbis_info info = stb_vorbis_get_info(m_v);
-    uint32_t totalSec = m_duration;
-    
-    if (targetSeconds < 0) targetSeconds = 0;
-    if (targetSeconds > totalSec) targetSeconds = totalSec;
-    uint32_t targetSample = targetSeconds * info.sample_rate;
-    
-    return (bool)stb_vorbis_seek(m_v, targetSample);
+    if (!m_initialized)
+        return false;
+
+    ogg_int64_t pcmPos = (ogg_int64_t)targetSeconds * m_sampleRate;
+    if (ov_pcm_seek(&m_vf, pcmPos) != 0)
+        return false;
+
+    // PCM-Buffer nach Seek leeren
+    m_pcmBufferSize = 0;
+    m_pcmBufferPos  = 0;
+    return true;
 }
 
-bool VorbisStream::seekRelative(int32_t targetSeconds)
+int VorbisStream::readSamples(short *buffer, int samplesToRead)
 {
-    if (!m_v) return false;
-    
-    stb_vorbis_info info = stb_vorbis_get_info(m_v);
-    uint32_t currentSec = getCurrentSeconds();
-    uint32_t totalSec = m_duration;
-    int32_t targetSec = (int32_t)currentSec + targetSeconds;
-    
-    if (targetSec < 0) targetSec = 0;
-    if (targetSec > (int32_t)totalSec) targetSec = totalSec;
-    uint32_t targetSample = (uint32_t)targetSec * info.sample_rate;
-    
-    return (bool)stb_vorbis_seek(m_v, targetSample);
+    if (!m_initialized || !buffer)
+        return 0;
+
+    int samplesRead = 0;
+
+    while (samplesRead < samplesToRead)
+    {
+        // Erst internen Buffer leeren
+        if (m_pcmBufferPos < m_pcmBufferSize)
+        {
+            int available = m_pcmBufferSize - m_pcmBufferPos;
+            int toCopy    = samplesToRead - samplesRead;
+            if (toCopy > available) toCopy = available;
+
+            memcpy(buffer + samplesRead, m_pcmBuffer + m_pcmBufferPos, toCopy * sizeof(short));
+
+            m_pcmBufferPos += toCopy;
+            samplesRead    += toCopy;
+            continue;
+        }
+
+        // Buffer leer - nächsten Block dekodieren
+        // libtremor ov_read gibt signed 16-bit PCM direkt zurück
+        // Kein bigendianp Parameter in tremor - gibt immer native Endian aus
+        long ret = ov_read(&m_vf, (char *)m_pcmBuffer, sizeof(m_pcmBuffer), &m_currentSection);
+
+        if (ret == 0)
+            break;
+
+        if (ret < 0)
+            continue;
+
+        m_pcmBufferSize = (int)(ret / sizeof(short));
+        m_pcmBufferPos  = 0;
+    }
+    return samplesRead / m_channels;
+}
+
+uint32_t VorbisStream::getCurrentSeconds() const
+{
+    if (!m_initialized)
+        return 0;
+
+    ogg_int64_t pos = ov_pcm_tell(&m_vf);
+    if (pos < 0) return 0;
+    return (uint32_t)(pos / m_sampleRate);
 }

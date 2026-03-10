@@ -55,7 +55,7 @@ bool PlaybackRunner::StartPlaybackTask(std::string file)
     struct TagItem playerTags[] = {
         {NP_Entry, (IPTR)PlayerTaskFunc},
         {NP_Name, (IPTR) "Audio_Engine"},
-        {NP_Priority, 10},
+        {NP_Priority, 15},
         {NP_StackSize, 32768},
         {TAG_DONE, 0}};
 

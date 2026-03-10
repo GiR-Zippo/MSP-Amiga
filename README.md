@@ -6,10 +6,10 @@ just a test how to NOT build a audioplayer for an Amiga
 ## Formats supported:
 M4A, ACC, FLAC, OGG/Vorbis, ogg/opus, MP123, Midi
 
-WebStreams: HTTP/HTTPS MP3 and AAC+ only
+WebStreams: HTTP/HTTPS MP3, AAC+, ogg/vorbis and ogg/opus  only
 
 Note: 
-- AAC+ Streams will only work with something beefier than a VampireV2 (PiStorm/Emu68 should work)
+- AAC+ and OGG/Opus Streams will only work with something beefier than a VampireV2 (PiStorm/Emu68 should work)
 - for seeking AAC raw files, MSP generates a seek table, this will take a while
 - Midi-support is in beta - you'll need a SF2 soundfont named default.sf2 in the same directory as the player
 

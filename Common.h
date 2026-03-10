@@ -103,6 +103,9 @@ void RemoveFromString(std::string &src, std::string arg);
 /// @brief just a helper for space to %20 conversion for urls
 std::string SimpleEncode(const char* src);
 
+/// @brief find bytes in array
+bool findBytes(const unsigned char *haystack, int hlen, const char *needle, int nlen);
+
 /// @brief show buffer content
 void dump_packet(const uint8_t *buffer, int len);
 

@@ -60,7 +60,7 @@ class NetworkStream : public AudioStream
         char            m_path[512];
         uint16_t        m_port;
         bool            m_isHTTP;
-        uint8_t         m_codec;
+        bool            m_isAudioStream;
         volatile bool   m_connected;
         volatile bool   m_terminate;
         volatile bool   m_stop;

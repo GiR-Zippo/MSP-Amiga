@@ -28,7 +28,7 @@ void Icecast::FetchList(List &songList, const char* filter)
 
     std::string fName = "https://de1.api.radio-browser.info/json/stations/search?";
     if (filter && !filter[0] == '\0')
-        fName = fName + "/search?hidebroken=true&name=" + SimpleEncode(filter) +"&";
+        fName = fName + "hidebroken=true&name=" + SimpleEncode(filter) +"&";
     
     fName = fName + "limit=" + sConfiguration->GetConfigString(configKeys[CONF_MAX_WEBRADIO_LIST], "300");
     stringToLower(fName);
@@ -104,7 +104,9 @@ void Icecast::FetchList(List &songList, const char* filter)
                 if (!name.empty())
                 {
                     // MP3 and AAC+ only atm
-                    if ((strstr(codec.c_str(), "AAC+") || strstr(codec.c_str(), "MP3")) && lastcheckok == 1)
+                    if ((strstr(codec.c_str(), "AAC+") || 
+                        strstr(codec.c_str(), "MP3")   || 
+                        strstr(codec.c_str(), "OGG"))  && lastcheckok == 1)
                     {
                         SongNode *sn = new SongNode;
                         snprintf(sn->name, sizeof(sn->name), "[%s] %s", codec.c_str(), name.c_str());

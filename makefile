@@ -14,22 +14,20 @@ else
 endif
 
 # === Flags ===
-# vorbis mag -m68881 nicht dr_mp3 wills aber... fliegts aus vorbis raus
-VORBIS_FLAGS = $(subst -m68881,,$(subst -ffast-math,,$(COMMON_FLAGS))) -msoft-float -DSTB_VORBIS_BIG_ENDIAN
-
+# -I. erlaubt das Inkludieren aus dem Projekt-Root
 ifeq ($(USE_ADE), 0)
-    COMMON_FLAGS = -O3 -Wall -m68040 -m68881 -ffast-math -fomit-frame-pointer -noixemul -fno-rtti -fno-exceptions -s -I.
+    COMMON_FLAGS = -O3 -Wall -m68040 -m68881 -ffast-math -fomit-frame-pointer -noixemul -fno-exceptions -s -I.
 else
-    COMMON_FLAGS = -O3 -Wall -m68040 -m68881 -ffast-math -fomit-frame-pointer -noixemul -fno-rtti -fno-exceptions -DOLD_GCC -s -I.
+    COMMON_FLAGS = -O3 -Wall -m68040 -m68881 -ffast-math -fomit-frame-pointer -noixemul -fno-exceptions -DOLD_GCC -s -I.
 endif
 
 # C++ spezifisch
-CXXFLAGS     = $(COMMON_FLAGS) -std=c++11 -fpermissive
+CXXFLAGS     = $(COMMON_FLAGS) -std=c++11 -fpermissive -fno-rtti
 
 # C spezifisch (inkl. Vorbis Big Endian Fix) und Linker Flags
 ifeq ($(USE_ADE), 0)
     CFLAGS  = $(COMMON_FLAGS) -DSTB_VORBIS_BIG_ENDIAN -DDR_MP3_IMPLEMENTATION -DDR_FLAC_BIG_ENDIAN
-    LDFLAGS = -noixemul -Wl,-static -Wl,--gc-sections
+    LDFLAGS = -noixemul -Wl,-static -Wl,--gc-sections -fdata-sections -ffunction-sections
 else
     CFLAGS  = $(COMMON_FLAGS) -DSTB_VORBIS_BIG_ENDIAN -DDR_MP3_IMPLEMENTATION -DDR_FLAC_BIG_ENDIAN 
     LDFLAGS = -noixemul -Wl,-static -fvtable-gc -fdata-sections -ffunction-section
@@ -52,12 +50,6 @@ $(TARGET): $(OBJ)
 	@echo ">>> Linking $(TARGET)..."
 	$(CXX) $(OBJ) -o $@ $(LDFLAGS) $(LIBS)
 	@echo "Done."
-
-# --- Spezial-Regel für stb_vorbis.c ---
-$(BUILD_DIR)/%/stb_vorbis.o: %/stb_vorbis.c
-	@mkdir -p $(dir $@)
-	@echo "Compiling C (Special Soft-Float): $<"
-	$(CC) $(VORBIS_FLAGS) -MMD -c $< -o $@
 
 # Regel für C++ Dateien (.cpp)
 $(BUILD_DIR)/%.o: %.cpp

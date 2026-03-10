@@ -142,6 +142,17 @@ std::string SimpleEncode(const char *src)
     return out;
 }
 
+bool findBytes(const unsigned char *haystack, int hlen, const char *needle, int nlen)
+{
+    for (int i = 0; i <= hlen - nlen; i++)
+    {
+        if (memcmp(haystack + i, needle, nlen) == 0)
+            return true;
+    }
+    return false;
+}
+
+
 // Bleibt so, dann compiled es
 size_t wcsrtombs(char *dest, const wchar_t **src, size_t len, mbstate_t *ps)
 {
