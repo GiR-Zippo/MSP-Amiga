@@ -46,6 +46,29 @@ void ARexx::Update()
                                                             strlen(Titlebuf));
                 }
             }
+            else if (strcasestr(command, "getstate") != NULL)
+            {
+                if (PlaybackRunner::getInstance()->GetStream() == NULL)
+                    rmsg->rm_Result1 = 10;
+                else
+                {
+                    if (PlaybackRunner::getInstance()->hasFlag(PFLAG_PLAYING))
+                        rmsg->rm_Result2 = (LONG)CreateArgstring((STRPTR)"PLAYING", 7);
+                    else
+                        rmsg->rm_Result2 = (LONG)CreateArgstring((STRPTR)"STOPPED", 7);
+                }
+            }
+            else if (strcasestr(command, "getstation") != NULL)
+            {
+                if (PlaybackRunner::getInstance()->GetStream() == NULL)
+                    rmsg->rm_Result1 = 10;
+                else
+                {
+                    char Titlebuf[128];
+                    rmsg->rm_Result2 = (LONG)CreateArgstring((STRPTR)PlaybackRunner::getInstance()->GetStream()->getStation(Titlebuf, 128), 
+                                                            strlen(Titlebuf));
+                }
+            }
             else if (strcasestr(command, "getartist") != NULL)
             {
                 if (PlaybackRunner::getInstance()->GetStream() == NULL)
