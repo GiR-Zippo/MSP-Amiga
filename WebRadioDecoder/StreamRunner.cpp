@@ -130,17 +130,22 @@ bool StreamRunner::openSocket()
             return false;
     }
 
-    char request[383];
+    int reqLen = strlen(m_parent->m_path) + strlen(m_parent->m_host) + 128;
+    char *request = (char *)AllocVec(reqLen, MEMF_PUBLIC | MEMF_CLEAR);
+    if (!request) return false;
+
     sprintf(request, "GET %s HTTP/1.0\r\nHost: %s\r\n"
-                     "User-Agent: Amiga\r\n"
-                     "Icy-MetaData: 1\r\n"
-                     "Connection: keep-alive\r\n\r\n",
+                    "User-Agent: Amiga\r\n"
+                    "Icy-MetaData: 1\r\n"
+                    "Connection: keep-alive\r\n\r\n",
             m_parent->m_path, m_parent->m_host);
+
     if (m_amiSSL)
         SSL_write(m_amiSSL->GetSSL(), request, strlen(request));
     else
         send(m_socket, request, strlen(request), 0);
 
+    FreeVec(request);
     return true;
 }
 

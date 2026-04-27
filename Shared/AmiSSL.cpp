@@ -49,15 +49,15 @@ bool AmiSSL::Init()
     m_AmiSSLInitialized = false;
 
     if (!(UtilityBase = OpenLibrary((CONST_STRPTR) "utility.library", 0)))
-        FPrintf(GetStdErr(), "Couldn't open utility.library!\n");
+        fprintf(stderr,  "Couldn't open utility.library!\n");
     else if (!(SocketBase = OpenLibrary((CONST_STRPTR) "bsdsocket.library", 4)))
-        FPrintf(GetStdErr(), "Couldn't open bsdsocket.library v4!\n");
+        fprintf(stderr,  "Couldn't open bsdsocket.library v4!\n");
     else if (!(AmiSSLMasterBase = OpenLibrary((CONST_STRPTR) "amisslmaster.library", AMISSLMASTER_MIN_VERSION)))
-        FPrintf(GetStdErr(), "Couldn't open amisslmaster.library v" MKSTR(AMISSLMASTER_MIN_VERSION) "!\n");
+        fprintf(stderr,  "Couldn't open amisslmaster.library v" MKSTR(AMISSLMASTER_MIN_VERSION) "!\n");
     else if (!InitAmiSSLMaster(AMISSL_CURRENT_VERSION, TRUE))
-        FPrintf(GetStdErr(), "AmiSSL version is too old!\n");
+        fprintf(stderr,  "AmiSSL version is too old!\n");
     else if (!(AmiSSLBase = OpenAmiSSL()))
-        FPrintf(GetStdErr(), "Couldn't open AmiSSL!\n");
+        fprintf(stderr,  "Couldn't open AmiSSL!\n");
     else
         m_AmiSSLInitialized = true;
 
@@ -81,7 +81,7 @@ bool AmiSSL::Init()
 
     if (InitAmiSSLA(tags) != 0)
     {
-        FPrintf(GetStdErr(), "Couldn't initialize AmiSSL!\n");
+        fprintf(stderr,  "Couldn't initialize AmiSSL!\n");
         Cleanup();
         return false;
     }
@@ -151,7 +151,7 @@ int AmiSSL::ConnectToServer(char *host, short port, char *proxy, short pport)
         memcpy(&addr.sin_addr, hostent->h_addr, hostent->h_length);
     }
     else
-        FPrintf(GetStdErr(), "Host lookup failed\n");
+        fprintf(stderr,  "Host lookup failed\n");
 
     /* Create a socket and connect to the server */
     if (hostent && ((sock = socket(AF_INET, SOCK_STREAM, 0)) >= 0))
@@ -200,16 +200,16 @@ int AmiSSL::ConnectToServer(char *host, short port, char *proxy, short pport)
                             if (atol(s1) == 200)
                                 is_ok = TRUE;
                             else
-                                FPrintf(GetStdErr(), "Proxy responce indicates error!\n");
+                                fprintf(stderr,  "Proxy responce indicates error!\n");
                         }
                         else
-                            FPrintf(GetStdErr(), "Amibigous proxy responce!\n");
+                            fprintf(stderr,  "Amibigous proxy responce!\n");
                     }
                     else
-                        FPrintf(GetStdErr(), "Couldn't get proxy response!\n");
+                        fprintf(stderr,  "Couldn't get proxy response!\n");
                 }
                 else
-                    FPrintf(GetStdErr(), "Couldn't send request to proxy!\n");
+                    fprintf(stderr,  "Couldn't send request to proxy!\n");
             }
             else
                 is_ok = TRUE;

@@ -144,7 +144,7 @@ void NetworkStream::taskEntry()
 void NetworkStream::closeStream()
 {
     m_terminate = true;
-    int timeout = 100;
+    int timeout = 300;
     while ((m_connected) && timeout-- > 0)
         Delay(2);
 }
@@ -153,10 +153,10 @@ void NetworkStream::closeStream()
 /// @return true if everything is okay
 bool NetworkStream::testConnection()
 {
-    char request[1024];
-    char buffer[512];
-    int bytesRead = 0;
-    bool resState = false;
+    int reqLen = strlen(m_path) + strlen(m_host) + 512;
+    char *request = (char *)AllocVec(reqLen, MEMF_PUBLIC | MEMF_CLEAR);
+    if (!request) return false;
+
     sprintf(request, "GET %s HTTP/1.1\r\n"
                      "Host: %s\r\n"
                      "User-Agent: Amiga-MSP/1.0 (m68k; AmigaOS 3)\r\n"
@@ -164,6 +164,11 @@ bool NetworkStream::testConnection()
                      "Priority: u=0, i\r\n"
                      "Icy-MetaData: 1\r\n"
                      "Connection: close\r\n\r\n", m_path, m_host);
+
+    char buffer[512];
+    int bytesRead = 0;
+    bool resState = false;
+
     if (m_isHTTP)
     {
         struct Library *SocketBase = OpenLibrary((CONST_STRPTR) "bsdsocket.library", 4);
@@ -216,5 +221,6 @@ bool NetworkStream::testConnection()
         buffer[bytesRead] = '\0';
         resState = handleServerResponse(buffer);
     }
+    FreeVec(request);
     return resState;
 }
